@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
+    Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -23,17 +24,24 @@ const EVENT_COLORS: Record<string, string> = {
     symptom: "#ef4444",
 };
 
+const FILTER_OPTIONS = [
+    { key: "all", label: "All", color: "#000", bg: "#f3f4f6" },
+    { key: "feeding", label: "Feeding", color: "#16a34a", bg: "#dcfce7" },
+    { key: "expense", label: "Expense", color: "#2563eb", bg: "#dbeafe" },
+    { key: "medication", label: "Medication", color: "#9333ea", bg: "#f3e8ff" },
+    { key: "vaccine", label: "Vaccine", color: "#ea580c", bg: "#ffedd5" },
+    { key: "symptom", label: "Symptom", color: "#dc2626", bg: "#fee2e2" },
+];
+
+const STATUS_OPTIONS = ["Healthy", "Sick", "Under Medication"];
+
 function formatTime(timestamp: string) {
     const date = new Date(timestamp);
     const now = new Date();
-
-    // Compare dates only (ignore time) to avoid timezone issues
     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const nowOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
     const diffMs = nowOnly.getTime() - dateOnly.getTime();
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
     if (diffDays === 0) return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -42,11 +50,8 @@ function formatTime(timestamp: string) {
 
 function getEventTimestamp(event: PetEvent): string {
     const m = event.metadata;
-    // Expense events store the actual date in metadata.date
     if (event.type === "expense" && m.date) return m.date;
-    // Feeding events store the actual time in metadata.time
     if (event.type === "feeding" && m.time) return m.time;
-    // All other events use the database row timestamp
     return event.timestamp;
 }
 
@@ -82,7 +87,11 @@ function getGreeting() {
     return "Good evening";
 }
 
-function SkeletonBox({ width, height, borderRadius = 8 }: { width: number | string, height: number, borderRadius?: number }) {
+function SkeletonBox({ width, height, borderRadius = 8 }: {
+    width: number | string;
+    height: number;
+    borderRadius?: number;
+}) {
     return (
         <View
             style={{
@@ -98,8 +107,6 @@ function SkeletonBox({ width, height, borderRadius = 8 }: { width: number | stri
 function HomeSkeleton() {
     return (
         <View className="px-5 pt-4 pb-24">
-
-            {/* Header Skeleton */}
             <View className="flex-row justify-between items-start mb-6">
                 <View className="gap-2">
                     <SkeletonBox width={80} height={12} borderRadius={6} />
@@ -107,8 +114,6 @@ function HomeSkeleton() {
                 </View>
                 <SkeletonBox width={24} height={24} borderRadius={12} />
             </View>
-
-            {/* Pet Selector Skeleton */}
             <View className="flex-row gap-4 mb-6">
                 {[1, 2].map((i) => (
                     <View key={i} className="items-center gap-1">
@@ -117,8 +122,6 @@ function HomeSkeleton() {
                     </View>
                 ))}
             </View>
-
-            {/* Pet Summary Card Skeleton */}
             <View
                 className="rounded-2xl p-4 mb-6"
                 style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
@@ -136,8 +139,6 @@ function HomeSkeleton() {
                     </View>
                 </View>
             </View>
-
-            {/* Quick Actions Skeleton */}
             <View className="flex-row gap-3 mb-6">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <View key={i} className="flex-1 items-center gap-1">
@@ -146,14 +147,10 @@ function HomeSkeleton() {
                     </View>
                 ))}
             </View>
-
-            {/* Timeline Header Skeleton */}
             <View className="flex-row justify-between items-center mb-4">
                 <SkeletonBox width={80} height={18} borderRadius={6} />
                 <SkeletonBox width={50} height={12} borderRadius={6} />
             </View>
-
-            {/* Timeline Event Skeletons */}
             {[1, 2, 3].map((i) => (
                 <View
                     key={i}
@@ -173,7 +170,6 @@ function HomeSkeleton() {
                     </View>
                 </View>
             ))}
-
         </View>
     );
 }
@@ -186,6 +182,10 @@ export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [displayPet, setDisplayPet] = useState<Pet | null>(null);
+    const [activeFilter, setActiveFilter] = useState("all");
+    const [viewAll, setViewAll] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<PetEvent | null>(null);
     const [showActionModal, setShowActionModal] = useState(false);
 
@@ -193,23 +193,18 @@ export default function HomeScreen() {
         return [...events].sort((a, b) => {
             const dateA = new Date(getEventTimestamp(a)).getTime();
             const dateB = new Date(getEventTimestamp(b)).getTime();
-            return dateB - dateA; // newest first
+            return dateB - dateA;
         });
     }, [events]);
 
-    async function deleteEvent(eventId: string) {
-        try {
-            await supabase.from("events").delete().eq("id", eventId);
-            setEvents((prev) => prev.filter((e) => e.id !== eventId));
-        } catch (err) {
-            console.error(err);
-        }
-    }
+    const filteredEvents = useMemo(() => {
+        if (activeFilter === "all") return sortedEvents;
+        return sortedEvents.filter((e) => e.type === activeFilter);
+    }, [sortedEvents, activeFilter]);
 
-    function handleEventPress(event: PetEvent) {
-        setSelectedEvent(event);
-        setShowActionModal(true);
-    }
+    const displayEvents = useMemo(() => {
+        return viewAll ? filteredEvents.slice(0, 50) : filteredEvents.slice(0, 10);
+    }, [filteredEvents, viewAll]);
 
     async function fetchEvents(pet?: Pet | null) {
         try {
@@ -224,10 +219,10 @@ export default function HomeScreen() {
                 .select("*")
                 .eq("pet_id", activePet.id)
                 .order("timestamp", { ascending: false })
-                .limit(10);
+                .limit(50);
 
             setEvents(eventsData || []);
-            setDisplayPet(activePet); // ← only update after events are ready
+            setDisplayPet(activePet);
         } catch (err) {
             console.error(err);
         } finally {
@@ -243,6 +238,34 @@ export default function HomeScreen() {
         setUserName(name);
     }
 
+    async function deleteEvent(eventId: string) {
+        try {
+            await supabase.from("events").delete().eq("id", eventId);
+            setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function handleEventPress(event: PetEvent) {
+        setSelectedEvent(event);
+        setShowActionModal(true);
+    }
+
+    async function updatePetStatus(status: string) {
+        if (!selectedPet) return;
+        setUpdatingStatus(true);
+        try {
+            await supabase.from("pets").update({ status }).eq("id", selectedPet.id);
+            await refreshPets();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setUpdatingStatus(false);
+            setShowStatusModal(false);
+        }
+    }
+
     useEffect(() => {
         fetchUserName();
     }, []);
@@ -250,7 +273,7 @@ export default function HomeScreen() {
     useEffect(() => {
         if (selectedPet) fetchEvents();
         else setLoading(false);
-    }, [selectedPet]);
+    }, [selectedPet?.id]);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -259,7 +282,18 @@ export default function HomeScreen() {
     }, [selectedPet]);
 
     function switchPet(pet: Pet) {
+        setViewAll(false);
+        setActiveFilter("all");
         setSelectedPet(pet);
+    }
+
+    function getStatusColor(status: string) {
+        switch (status) {
+            case "Healthy": return { bg: "#dcfce7", dot: "#22c55e", text: "#16a34a" };
+            case "Sick": return { bg: "#fee2e2", dot: "#ef4444", text: "#dc2626" };
+            case "Under Medication": return { bg: "#ffedd5", dot: "#f97316", text: "#ea580c" };
+            default: return { bg: "#dcfce7", dot: "#22c55e", text: "#16a34a" };
+        }
     }
 
     if (loading || petsLoading) {
@@ -271,6 +305,8 @@ export default function HomeScreen() {
             </SafeAreaView>
         );
     }
+
+    const statusColors = getStatusColor(selectedPet?.status || "Healthy");
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -317,7 +353,6 @@ export default function HomeScreen() {
                             </Text>
                         </TouchableOpacity>
                     ))}
-
                     <TouchableOpacity
                         className="items-center"
                         onPress={() => router.push("/add-pet")}
@@ -342,10 +377,25 @@ export default function HomeScreen() {
                             <View className="flex-1">
                                 <View className="flex-row items-center gap-2 mb-1">
                                     <Text className="text-lg font-bold text-black">{selectedPet.name}</Text>
-                                    <View className="bg-green-100 px-2 py-0.5 rounded-full flex-row items-center gap-1">
-                                        <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                        <Text className="text-green-700 text-xs font-medium">{selectedPet.status}</Text>
-                                    </View>
+
+                                    {/* Interactive Status Badge */}
+                                    <TouchableOpacity
+                                        onPress={() => setShowStatusModal(true)}
+                                        className="flex-row items-center gap-1 px-2 py-0.5 rounded-full"
+                                        style={{ backgroundColor: statusColors.bg }}
+                                    >
+                                        <View
+                                            className="w-1.5 h-1.5 rounded-full"
+                                            style={{ backgroundColor: statusColors.dot }}
+                                        />
+                                        <Text
+                                            className="text-xs font-medium"
+                                            style={{ color: statusColors.text }}
+                                        >
+                                            {selectedPet.status}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={10} color={statusColors.text} />
+                                    </TouchableOpacity>
                                 </View>
                                 <Text className="text-gray-400 text-sm mb-2">{selectedPet.breed}</Text>
                                 <View className="flex-row gap-4">
@@ -404,14 +454,53 @@ export default function HomeScreen() {
                 {/* Timeline Header */}
                 <View className="flex-row justify-between items-center mb-3">
                     <Text className="text-lg font-bold text-black">Timeline</Text>
-                    <TouchableOpacity>
-                        <Text className="text-sm text-gray-400">View all</Text>
-                    </TouchableOpacity>
+                    {filteredEvents.length > 10 && (
+                        <TouchableOpacity onPress={() => setViewAll(!viewAll)}>
+                            <Text className="text-sm text-gray-400">
+                                {viewAll ? "Show Less" : "View All"}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
+
+                {/* Filter Pills */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mb-3"
+                >
+                    <View className="flex-row gap-2 pb-1">
+                        {FILTER_OPTIONS.map((filter) => {
+                            const isActive = activeFilter === filter.key;
+                            return (
+                                <TouchableOpacity
+                                    key={filter.key}
+                                    onPress={() => {
+                                        setActiveFilter(filter.key);
+                                        setViewAll(false);
+                                    }}
+                                    className="px-4 py-2 rounded-full"
+                                    style={{
+                                        backgroundColor: isActive ? filter.bg : "#f9fafb",
+                                        borderWidth: 1,
+                                        borderColor: isActive ? filter.color : "#f3f4f6",
+                                    }}
+                                >
+                                    <Text
+                                        className="text-sm font-medium"
+                                        style={{ color: isActive ? filter.color : "#9ca3af" }}
+                                    >
+                                        {filter.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </ScrollView>
 
             </View>
 
-            {/* Scrollable Timeline Only */}
+            {/* Scrollable Timeline */}
             <ScrollView
                 className="flex-1 px-5"
                 showsVerticalScrollIndicator={false}
@@ -420,40 +509,58 @@ export default function HomeScreen() {
                 }
             >
                 <View className="gap-3 pb-24">
-                    {sortedEvents.length === 0 ? (
+                    {displayEvents.length === 0 ? (
                         <View className="items-center py-8">
                             <Ionicons name="time-outline" size={40} color="#e5e7eb" />
-                            <Text className="text-gray-300 mt-2 text-sm">No events yet</Text>
-                            <Text className="text-gray-400 text-xs mt-1">Tap + to log your first event</Text>
+                            <Text className="text-gray-300 mt-2 text-sm">
+                                {activeFilter === "all" ? "No events yet" : `No ${activeFilter} events`}
+                            </Text>
+                            <Text className="text-gray-400 text-xs mt-1">
+                                Tap + to log your first event
+                            </Text>
                         </View>
                     ) : (
-                        sortedEvents.map((event) => (
-                            <TouchableOpacity
-                                key={event.id}
-                                className="bg-white rounded-2xl p-4"
-                                style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
-                                onPress={() => handleEventPress(event)}
-                            >
-                                <View className="flex-row items-start gap-3">
-                                    <View
-                                        className="w-2.5 h-2.5 rounded-full mt-1.5"
-                                        style={{ backgroundColor: EVENT_COLORS[event.type] }}
-                                    />
-                                    <View className="flex-1">
-                                        <View className="flex-row justify-between items-start">
-                                            <Text className="text-xs text-gray-400 capitalize">{event.type}</Text>
-                                            <Text className="text-xs text-gray-400">{formatTime(getEventTimestamp(event))}</Text>
+                        <>
+                            {displayEvents.map((event) => (
+                                <TouchableOpacity
+                                    key={event.id}
+                                    className="bg-white rounded-2xl p-4"
+                                    style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                    onPress={() => handleEventPress(event)}
+                                >
+                                    <View className="flex-row items-start gap-3">
+                                        <View
+                                            className="w-2.5 h-2.5 rounded-full mt-1.5"
+                                            style={{ backgroundColor: EVENT_COLORS[event.type] }}
+                                        />
+                                        <View className="flex-1">
+                                            <View className="flex-row justify-between items-start">
+                                                <Text className="text-xs text-gray-400 capitalize">{event.type}</Text>
+                                                <Text className="text-xs text-gray-400">
+                                                    {formatTime(getEventTimestamp(event))}
+                                                </Text>
+                                            </View>
+                                            <Text className="text-sm font-semibold text-black mt-0.5">
+                                                {formatEventTitle(event)}
+                                            </Text>
+                                            <Text className="text-xs text-gray-400 mt-0.5">
+                                                {formatEventSubtitle(event, displayPet?.name || "")}
+                                            </Text>
                                         </View>
-                                        <Text className="text-sm font-semibold text-black mt-0.5">
-                                            {formatEventTitle(event)}
-                                        </Text>
-                                        <Text className="text-xs text-gray-400 mt-0.5">
-                                            {formatEventSubtitle(event, displayPet?.name || "")}
-                                        </Text>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))
+                                </TouchableOpacity>
+                            ))}
+
+                            {/* Show Less at bottom when expanded */}
+                            {viewAll && filteredEvents.length > 10 && (
+                                <TouchableOpacity
+                                    className="items-center py-3"
+                                    onPress={() => setViewAll(false)}
+                                >
+                                    <Text className="text-sm text-gray-400">Show Less</Text>
+                                </TouchableOpacity>
+                            )}
+                        </>
                     )}
                 </View>
             </ScrollView>
@@ -465,6 +572,57 @@ export default function HomeScreen() {
             >
                 <Ionicons name="add" size={28} color="white" />
             </TouchableOpacity>
+
+            {/* Status Update Modal */}
+            <Modal
+                visible={showStatusModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowStatusModal(false)}
+            >
+                <TouchableOpacity
+                    className="flex-1 bg-black/30"
+                    activeOpacity={1}
+                    onPress={() => setShowStatusModal(false)}
+                >
+                    <View
+                        className="mx-5 mt-64 bg-white rounded-2xl overflow-hidden"
+                        style={{ elevation: 10 }}
+                    >
+                        <Text className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2">
+                            Update Status
+                        </Text>
+                        {STATUS_OPTIONS.map((status, index) => {
+                            const colors = getStatusColor(status);
+                            const isSelected = selectedPet?.status === status;
+                            return (
+                                <TouchableOpacity
+                                    key={status}
+                                    className="px-4 py-3 flex-row items-center justify-between"
+                                    style={{
+                                        borderBottomWidth: index < STATUS_OPTIONS.length - 1 ? 1 : 0,
+                                        borderBottomColor: "#f3f4f6",
+                                        backgroundColor: isSelected ? "#f9fafb" : "#fff",
+                                    }}
+                                    onPress={() => updatePetStatus(status)}
+                                    disabled={updatingStatus}
+                                >
+                                    <View className="flex-row items-center gap-2">
+                                        <View
+                                            className="w-2 h-2 rounded-full"
+                                            style={{ backgroundColor: colors.dot }}
+                                        />
+                                        <Text className="text-sm text-black">{status}</Text>
+                                    </View>
+                                    {isSelected && (
+                                        <Ionicons name="checkmark" size={16} color="#000" />
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
 
             {/* Event Action Modal */}
             <EventActionModal

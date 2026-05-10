@@ -9,10 +9,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import type { Pet, PetEvent } from "../../types/index";
 import { usePet } from "../../context/PetContext";
+import EventActionModal from "../components/EventActionModal";
 
 const EVENT_COLORS: Record<string, string> = {
     feeding: "#22c55e",
@@ -37,6 +38,16 @@ function formatTime(timestamp: string) {
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function getEventTimestamp(event: PetEvent): string {
+    const m = event.metadata;
+    // Expense events store the actual date in metadata.date
+    if (event.type === "expense" && m.date) return m.date;
+    // Feeding events store the actual time in metadata.time
+    if (event.type === "feeding" && m.time) return m.time;
+    // All other events use the database row timestamp
+    return event.timestamp;
 }
 
 function formatEventTitle(event: PetEvent) {
@@ -175,6 +186,30 @@ export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [displayPet, setDisplayPet] = useState<Pet | null>(null);
+    const [selectedEvent, setSelectedEvent] = useState<PetEvent | null>(null);
+    const [showActionModal, setShowActionModal] = useState(false);
+
+    const sortedEvents = useMemo(() => {
+        return [...events].sort((a, b) => {
+            const dateA = new Date(getEventTimestamp(a)).getTime();
+            const dateB = new Date(getEventTimestamp(b)).getTime();
+            return dateB - dateA; // newest first
+        });
+    }, [events]);
+
+    async function deleteEvent(eventId: string) {
+        try {
+            await supabase.from("events").delete().eq("id", eventId);
+            setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function handleEventPress(event: PetEvent) {
+        setSelectedEvent(event);
+        setShowActionModal(true);
+    }
 
     async function fetchEvents(pet?: Pet | null) {
         try {
@@ -385,18 +420,19 @@ export default function HomeScreen() {
                 }
             >
                 <View className="gap-3 pb-24">
-                    {events.length === 0 ? (
+                    {sortedEvents.length === 0 ? (
                         <View className="items-center py-8">
                             <Ionicons name="time-outline" size={40} color="#e5e7eb" />
                             <Text className="text-gray-300 mt-2 text-sm">No events yet</Text>
                             <Text className="text-gray-400 text-xs mt-1">Tap + to log your first event</Text>
                         </View>
                     ) : (
-                        events.map((event) => (
+                        sortedEvents.map((event) => (
                             <TouchableOpacity
                                 key={event.id}
                                 className="bg-white rounded-2xl p-4"
                                 style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                onPress={() => handleEventPress(event)}
                             >
                                 <View className="flex-row items-start gap-3">
                                     <View
@@ -406,7 +442,7 @@ export default function HomeScreen() {
                                     <View className="flex-1">
                                         <View className="flex-row justify-between items-start">
                                             <Text className="text-xs text-gray-400 capitalize">{event.type}</Text>
-                                            <Text className="text-xs text-gray-400">{formatTime(event.timestamp)}</Text>
+                                            <Text className="text-xs text-gray-400">{formatTime(getEventTimestamp(event))}</Text>
                                         </View>
                                         <Text className="text-sm font-semibold text-black mt-0.5">
                                             {formatEventTitle(event)}
@@ -429,6 +465,17 @@ export default function HomeScreen() {
             >
                 <Ionicons name="add" size={28} color="white" />
             </TouchableOpacity>
+
+            {/* Event Action Modal */}
+            <EventActionModal
+                visible={showActionModal}
+                event={selectedEvent}
+                onClose={() => {
+                    setShowActionModal(false);
+                    setSelectedEvent(null);
+                }}
+                onDelete={deleteEvent}
+            />
 
         </SafeAreaView>
     );

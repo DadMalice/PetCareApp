@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
@@ -28,9 +28,10 @@ const EVENT_TYPES = [
 
 export default function AddEventScreen() {
     const router = useRouter();
-    const { type } = useLocalSearchParams<{ type: string }>();
+    const { type, eventId } = useLocalSearchParams<{ type: string; eventId: string }>();
     const [selectedType, setSelectedType] = useState<string | null>(type || null);
     const [loading, setLoading] = useState(false);
+    const [fetchingEvent, setFetchingEvent] = useState(!!eventId);
     const [error, setError] = useState("");
 
     // Form fields
@@ -88,6 +89,66 @@ export default function AddEventScreen() {
         }
     }
 
+    const { selectedPet } = usePet();
+    const isEditing = !!eventId;
+
+    // Fetch existing event data for editing
+    useEffect(() => {
+        if (!eventId) return;
+
+        (async () => {
+            try {
+                const { data, error } = await supabase
+                    .from("events")
+                    .select("*")
+                    .eq("id", eventId)
+                    .single();
+
+                if (error) throw error;
+                if (!data) return;
+
+                // Set the event type
+                setSelectedType(data.type);
+
+                // Pre-fill form fields based on metadata
+                const m = data.metadata || {};
+                setNotes(m.notes || "");
+
+                switch (data.type) {
+                    case "feeding":
+                        setFoodType(m.food_type || "");
+                        setFeedingQuantity(m.quantity?.toString() || "");
+                        setFeedingUnit(m.unit || "cup");
+                        if (m.time) setFeedingTime(new Date(m.time));
+                        break;
+                    case "expense":
+                        setExpenseCategory(m.category || "");
+                        setExpenseAmount(m.amount?.toString() || "");
+                        setExpenseDescription(m.description || "");
+                        if (m.date) setExpenseDate(new Date(m.date));
+                        break;
+                    case "medication":
+                        setMedName(m.name || "");
+                        setMedDose(m.dose || "");
+                        break;
+                    case "vaccine":
+                        setVaccineName(m.name || "");
+                        setNextDue(m.next_due || "");
+                        break;
+                    case "symptom":
+                        setSymptomName(m.name || "");
+                        setSeverity(m.severity || "");
+                        break;
+                }
+            } catch (err: any) {
+                console.error("Error fetching event:", err);
+                setError(err.message);
+            } finally {
+                setFetchingEvent(false);
+            }
+        })();
+    }, [eventId]);
+
     async function handleSave() {
         if (!selectedType) return;
         setLoading(true);
@@ -103,22 +164,37 @@ export default function AddEventScreen() {
                 return;
             }
 
-            const { error } = await supabase.from("events").insert({
-                pet_id: selectedPet.id,  // ← uses context selected pet
-                user_id: user.id,
-                type: selectedType,
-                metadata: buildMetadata(),
-            });
+            const metadata = buildMetadata();
 
-            if (error) throw error;
+            if (isEditing) {
+                // Update existing event
+                const { error } = await supabase
+                    .from("events")
+                    .update({
+                        type: selectedType,
+                        metadata,
+                    })
+                    .eq("id", eventId);
+
+                if (error) throw error;
+            } else {
+                // Create new event
+                const { error } = await supabase.from("events").insert({
+                    pet_id: selectedPet.id,
+                    user_id: user.id,
+                    type: selectedType,
+                    metadata,
+                });
+
+                if (error) throw error;
+            }
+
             router.replace("/(tabs)");
         } catch (err: any) {
             setError(err.message);
         }
         setLoading(false);
     }
-
-    const { selectedPet } = usePet();
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -136,7 +212,9 @@ export default function AddEventScreen() {
                         <TouchableOpacity onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={24} color="#000" />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-black">Add Event</Text>
+                        <Text className="text-2xl font-bold text-black">
+                            {isEditing ? "Edit Event" : "Add Event"}
+                        </Text>
                     </View>
 
                     {/* Event Type Selector */}
@@ -145,12 +223,14 @@ export default function AddEventScreen() {
                         {EVENT_TYPES.map((et) => (
                             <TouchableOpacity
                                 key={et.type}
-                                onPress={() => setSelectedType(et.type)}
+                                onPress={isEditing ? undefined : () => setSelectedType(et.type)}
                                 className="flex-row items-center gap-2 px-4 py-2.5 rounded-xl border"
                                 style={{
                                     backgroundColor: selectedType === et.type ? et.color : "#f9fafb",
                                     borderColor: selectedType === et.type ? et.iconColor : "#f3f4f6",
+                                    opacity: isEditing && selectedType !== et.type ? 0.5 : 1,
                                 }}
+                                disabled={isEditing && selectedType !== et.type}
                             >
                                 <Ionicons
                                     name={et.icon as any}

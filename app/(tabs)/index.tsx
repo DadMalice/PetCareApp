@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import type { Pet, PetEvent } from "../../types/index";
 import { usePet } from "../../context/PetContext";
+import { useTheme } from "../../context/ThemeContext";
 import EventActionModal from "../components/EventActionModal";
 
 const EVENT_COLORS: Record<string, string> = {
@@ -92,19 +93,22 @@ function SkeletonBox({ width, height, borderRadius = 8 }: {
     height: number;
     borderRadius?: number;
 }) {
+    const { isDark } = useTheme();
     return (
         <View
             style={{
                 width: width as any,
                 height,
                 borderRadius,
-                backgroundColor: "#f3f4f6",
+                backgroundColor: isDark ? "#2c2c2e" : "#f3f4f6",
             }}
         />
     );
 }
 
 function HomeSkeleton() {
+    const { isDark } = useTheme();
+    const borderColor = isDark ? "#2c2c2e" : "#f3f4f6";
     return (
         <View className="px-5 pt-4 pb-24">
             <View className="flex-row justify-between items-start mb-6">
@@ -124,7 +128,7 @@ function HomeSkeleton() {
             </View>
             <View
                 className="rounded-2xl p-4 mb-6"
-                style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                style={{ borderWidth: 1, borderColor }}
             >
                 <View className="flex-row items-center gap-4">
                     <SkeletonBox width={64} height={64} borderRadius={32} />
@@ -155,7 +159,7 @@ function HomeSkeleton() {
                 <View
                     key={i}
                     className="rounded-2xl p-4 mb-3"
-                    style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                    style={{ borderWidth: 1, borderColor }}
                 >
                     <View className="flex-row items-start gap-3">
                         <SkeletonBox width={10} height={10} borderRadius={5} />
@@ -177,6 +181,7 @@ function HomeSkeleton() {
 export default function HomeScreen() {
     const router = useRouter();
     const { pets, selectedPet, setSelectedPet, refreshPets, petsLoading } = usePet();
+    const { isDark } = useTheme();
     const [events, setEvents] = useState<PetEvent[]>([]);
     const [userName, setUserName] = useState("");
     const [loading, setLoading] = useState(true);
@@ -298,7 +303,7 @@ export default function HomeScreen() {
 
     if (loading || petsLoading) {
         return (
-            <SafeAreaView className="flex-1 bg-white">
+            <SafeAreaView className={`flex-1 ${isDark ? "bg-dark-bg" : "bg-white"}`}>
                 <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                     <HomeSkeleton />
                 </ScrollView>
@@ -308,8 +313,17 @@ export default function HomeScreen() {
 
     const statusColors = getStatusColor(selectedPet?.status || "Healthy");
 
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
+    const borderClass = isDark ? "border-dark-border" : "border-gray-100";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+    const textTertiaryClass = isDark ? "text-dark-text-tertiary" : "text-gray-300";
+    const pillBgClass = isDark ? "bg-dark-card" : "bg-gray-50";
+    const pillBorderClass = isDark ? "border-dark-border" : "border-gray-100";
+
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
 
             {/* Fixed Top Section */}
             <View className="px-5 pt-4">
@@ -317,11 +331,11 @@ export default function HomeScreen() {
                 {/* Header */}
                 <View className="flex-row justify-between items-start mb-6">
                     <View>
-                        <Text className="text-gray-400 text-sm">{getGreeting()}</Text>
-                        <Text className="text-2xl font-bold text-black">Hi, {userName}</Text>
+                        <Text className={`${textSecondaryClass} text-sm`}>{getGreeting()}</Text>
+                        <Text className={`text-2xl font-bold ${textClass}`}>Hi, {userName}</Text>
                     </View>
                     <TouchableOpacity className="mt-1">
-                        <Ionicons name="search-outline" size={24} color="#000" />
+                        <Ionicons name="search-outline" size={24} color={isDark ? "#98989d" : "#000"} />
                     </TouchableOpacity>
                 </View>
 
@@ -337,7 +351,7 @@ export default function HomeScreen() {
                                 className="w-14 h-14 rounded-full bg-amber-200 items-center justify-center"
                                 style={{
                                     borderWidth: selectedPet?.id === pet.id ? 2 : 0,
-                                    borderColor: "#000",
+                                    borderColor: isDark ? "#fff" : "#000",
                                 }}
                             >
                                 <MaterialCommunityIcons name="dog" size={28} color="#000" />
@@ -346,7 +360,9 @@ export default function HomeScreen() {
                                 className="text-xs mt-1"
                                 style={{
                                     fontWeight: selectedPet?.id === pet.id ? "600" : "400",
-                                    color: selectedPet?.id === pet.id ? "#000" : "#9ca3af",
+                                    color: selectedPet?.id === pet.id
+                                        ? (isDark ? "#f5f5f7" : "#000")
+                                        : "#9ca3af",
                                 }}
                             >
                                 {pet.name}
@@ -357,7 +373,7 @@ export default function HomeScreen() {
                         className="items-center"
                         onPress={() => router.push("/add-pet")}
                     >
-                        <View className="w-14 h-14 rounded-full bg-gray-100 items-center justify-center">
+                        <View className={`w-14 h-14 rounded-full items-center justify-center ${isDark ? "bg-dark-card" : "bg-gray-100"}`}>
                             <Ionicons name="add" size={28} color="#9ca3af" />
                         </View>
                         <Text className="text-xs mt-1 text-gray-400">Add</Text>
@@ -367,8 +383,8 @@ export default function HomeScreen() {
                 {/* Pet Summary Card */}
                 {selectedPet ? (
                     <View
-                        className="rounded-2xl p-4 mb-6"
-                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                        className={`rounded-2xl p-4 mb-6 ${cardBgClass}`}
+                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                     >
                         <View className="flex-row items-center gap-4">
                             <View className="w-16 h-16 rounded-full bg-amber-200 items-center justify-center">
@@ -376,7 +392,7 @@ export default function HomeScreen() {
                             </View>
                             <View className="flex-1">
                                 <View className="flex-row items-center gap-2 mb-1">
-                                    <Text className="text-lg font-bold text-black">{selectedPet.name}</Text>
+                                    <Text className={`text-lg font-bold ${textClass}`}>{selectedPet.name}</Text>
 
                                     {/* Interactive Status Badge */}
                                     <TouchableOpacity
@@ -397,19 +413,19 @@ export default function HomeScreen() {
                                         <Ionicons name="chevron-down" size={10} color={statusColors.text} />
                                     </TouchableOpacity>
                                 </View>
-                                <Text className="text-gray-400 text-sm mb-2">{selectedPet.breed}</Text>
+                                <Text className={`${textSecondaryClass} text-sm mb-2`}>{selectedPet.breed}</Text>
                                 <View className="flex-row gap-4">
                                     <View>
-                                        <Text className="text-xs text-gray-400">Age</Text>
-                                        <Text className="text-sm font-semibold text-black">{selectedPet.age_years}y</Text>
+                                        <Text className={`text-xs ${textSecondaryClass}`}>Age</Text>
+                                        <Text className={`text-sm font-semibold ${textClass}`}>{selectedPet.age_years}y</Text>
                                     </View>
                                     <View>
-                                        <Text className="text-xs text-gray-400">Weight</Text>
-                                        <Text className="text-sm font-semibold text-black">{selectedPet.weight_kg}kg</Text>
+                                        <Text className={`text-xs ${textSecondaryClass}`}>Weight</Text>
+                                        <Text className={`text-sm font-semibold ${textClass}`}>{selectedPet.weight_kg}kg</Text>
                                     </View>
                                     <View>
-                                        <Text className="text-xs text-gray-400">Gender</Text>
-                                        <Text className="text-sm font-semibold text-black">{selectedPet.gender}</Text>
+                                        <Text className={`text-xs ${textSecondaryClass}`}>Gender</Text>
+                                        <Text className={`text-sm font-semibold ${textClass}`}>{selectedPet.gender}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -417,12 +433,12 @@ export default function HomeScreen() {
                     </View>
                 ) : (
                     <TouchableOpacity
-                        className="border-2 border-dashed border-gray-200 rounded-2xl p-6 mb-6 items-center"
+                        className={`border-2 border-dashed rounded-2xl p-6 mb-6 items-center ${isDark ? "border-dark-border" : "border-gray-200"}`}
                         onPress={() => router.push("/add-pet")}
                     >
                         <Ionicons name="paw-outline" size={32} color="#9ca3af" />
                         <Text className="text-gray-400 mt-2 text-sm">No pets yet</Text>
-                        <Text className="text-black font-semibold mt-1">+ Add your first pet</Text>
+                        <Text className={`font-semibold mt-1 ${textClass}`}>+ Add your first pet</Text>
                     </TouchableOpacity>
                 )}
 
@@ -453,7 +469,7 @@ export default function HomeScreen() {
 
                 {/* Timeline Header */}
                 <View className="flex-row justify-between items-center mb-3">
-                    <Text className="text-lg font-bold text-black">Timeline</Text>
+                    <Text className={`text-lg font-bold ${textClass}`}>Timeline</Text>
                     {filteredEvents.length > 10 && (
                         <TouchableOpacity onPress={() => setViewAll(!viewAll)}>
                             <Text className="text-sm text-gray-400">
@@ -481,14 +497,16 @@ export default function HomeScreen() {
                                     }}
                                     className="px-4 py-2 rounded-full"
                                     style={{
-                                        backgroundColor: isActive ? filter.bg : "#f9fafb",
+                                        backgroundColor: isActive ? filter.bg : (isDark ? "#1c1c1e" : "#f9fafb"),
                                         borderWidth: 1,
-                                        borderColor: isActive ? filter.color : "#f3f4f6",
+                                        borderColor: isActive ? filter.color : (isDark ? "#2c2c2e" : "#f3f4f6"),
                                     }}
                                 >
                                     <Text
                                         className="text-sm font-medium"
-                                        style={{ color: isActive ? filter.color : "#9ca3af" }}
+                                        style={{
+                                            color: isActive ? filter.color : (isDark ? "#98989d" : "#9ca3af"),
+                                        }}
                                     >
                                         {filter.label}
                                     </Text>
@@ -502,17 +520,17 @@ export default function HomeScreen() {
 
             {/* Scrollable Timeline */}
             <ScrollView
-                className="flex-1 px-5"
+                className={`flex-1 px-5`}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#fff" : "#000"} />
                 }
             >
                 <View className="gap-3 pb-24">
                     {displayEvents.length === 0 ? (
                         <View className="items-center py-8">
-                            <Ionicons name="time-outline" size={40} color="#e5e7eb" />
-                            <Text className="text-gray-300 mt-2 text-sm">
+                            <Ionicons name="time-outline" size={40} color={isDark ? "#2c2c2e" : "#e5e7eb"} />
+                            <Text className={`${textTertiaryClass} mt-2 text-sm`}>
                                 {activeFilter === "all" ? "No events yet" : `No ${activeFilter} events`}
                             </Text>
                             <Text className="text-gray-400 text-xs mt-1">
@@ -524,8 +542,8 @@ export default function HomeScreen() {
                             {displayEvents.map((event) => (
                                 <TouchableOpacity
                                     key={event.id}
-                                    className="bg-white rounded-2xl p-4"
-                                    style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                    className={`${cardBgClass} rounded-2xl p-4`}
+                                    style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                     onPress={() => handleEventPress(event)}
                                 >
                                     <View className="flex-row items-start gap-3">
@@ -535,15 +553,15 @@ export default function HomeScreen() {
                                         />
                                         <View className="flex-1">
                                             <View className="flex-row justify-between items-start">
-                                                <Text className="text-xs text-gray-400 capitalize">{event.type}</Text>
-                                                <Text className="text-xs text-gray-400">
+                                                <Text className={`text-xs ${textSecondaryClass} capitalize`}>{event.type}</Text>
+                                                <Text className={`text-xs ${textSecondaryClass}`}>
                                                     {formatTime(getEventTimestamp(event))}
                                                 </Text>
                                             </View>
-                                            <Text className="text-sm font-semibold text-black mt-0.5">
+                                            <Text className={`text-sm font-semibold ${textClass} mt-0.5`}>
                                                 {formatEventTitle(event)}
                                             </Text>
-                                            <Text className="text-xs text-gray-400 mt-0.5">
+                                            <Text className={`text-xs ${textSecondaryClass} mt-0.5`}>
                                                 {formatEventSubtitle(event, displayPet?.name || "")}
                                             </Text>
                                         </View>
@@ -567,10 +585,10 @@ export default function HomeScreen() {
 
             {/* FAB */}
             <TouchableOpacity
-                className="absolute bottom-6 right-5 w-14 h-14 bg-black rounded-full items-center justify-center shadow-lg"
+                className={`absolute bottom-6 right-5 w-14 h-14 rounded-full items-center justify-center shadow-lg ${isDark ? "bg-dark-text" : "bg-black"}`}
                 onPress={() => router.push("/add-event")}
             >
-                <Ionicons name="add" size={28} color="white" />
+                <Ionicons name="add" size={28} color={isDark ? "#000" : "white"} />
             </TouchableOpacity>
 
             {/* Status Update Modal */}
@@ -586,10 +604,10 @@ export default function HomeScreen() {
                     onPress={() => setShowStatusModal(false)}
                 >
                     <View
-                        className="mx-5 mt-64 bg-white rounded-2xl overflow-hidden"
+                        className={`mx-5 mt-64 rounded-2xl overflow-hidden ${cardBgClass}`}
                         style={{ elevation: 10 }}
                     >
-                        <Text className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2">
+                        <Text className={`text-sm font-semibold ${textSecondaryClass} px-4 pt-4 pb-2`}>
                             Update Status
                         </Text>
                         {STATUS_OPTIONS.map((status, index) => {
@@ -601,8 +619,8 @@ export default function HomeScreen() {
                                     className="px-4 py-3 flex-row items-center justify-between"
                                     style={{
                                         borderBottomWidth: index < STATUS_OPTIONS.length - 1 ? 1 : 0,
-                                        borderBottomColor: "#f3f4f6",
-                                        backgroundColor: isSelected ? "#f9fafb" : "#fff",
+                                        borderBottomColor: isDark ? "#2c2c2e" : "#f3f4f6",
+                                        backgroundColor: isSelected ? (isDark ? "#2c2c2e" : "#f9fafb") : "transparent",
                                     }}
                                     onPress={() => updatePetStatus(status)}
                                     disabled={updatingStatus}
@@ -612,10 +630,10 @@ export default function HomeScreen() {
                                             className="w-2 h-2 rounded-full"
                                             style={{ backgroundColor: colors.dot }}
                                         />
-                                        <Text className="text-sm text-black">{status}</Text>
+                                        <Text className={`text-sm ${textClass}`}>{status}</Text>
                                     </View>
                                     {isSelected && (
-                                        <Ionicons name="checkmark" size={16} color="#000" />
+                                        <Ionicons name="checkmark" size={16} color={isDark ? "#f5f5f7" : "#000"} />
                                     )}
                                 </TouchableOpacity>
                             );

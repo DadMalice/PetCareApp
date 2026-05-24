@@ -13,11 +13,14 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { usePet } from "../context/PetContext";
+import { useTheme } from "../context/ThemeContext";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { StatusBar } from "expo-status-bar";
 
 export default function AddReminderScreen() {
     const router = useRouter();
     const { pets } = usePet();
+    const { isDark } = useTheme();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -29,6 +32,13 @@ export default function AddReminderScreen() {
     const [type, setType] = useState("general");
     const [selectedPetId, setSelectedPetId] = useState<string>(pets[0]?.id || "");
     const [showPetDropdown, setShowPetDropdown] = useState(false);
+
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+    const inputBgClass = isDark ? "bg-dark-card" : "bg-gray-100";
+    const inputTextClass = isDark ? "text-dark-text" : "text-black";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
 
     async function handleSave() {
         if (!title) {
@@ -67,7 +77,8 @@ export default function AddReminderScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
+            <StatusBar style={isDark ? "light" : "dark"} />
             <KeyboardAwareScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
@@ -80,13 +91,13 @@ export default function AddReminderScreen() {
                     {/* Header */}
                     <View className="flex-row items-center gap-3 mb-8">
                         <TouchableOpacity onPress={() => router.back()}>
-                            <Ionicons name="arrow-back" size={24} color="#000" />
+                            <Ionicons name="arrow-back" size={24} color={isDark ? "#f5f5f7" : "#000"} />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-black">Add Reminder</Text>
+                        <Text className={`text-2xl font-bold ${textClass}`}>Add Reminder</Text>
                     </View>
 
                     {/* Pet Selector */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Pet</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Pet</Text>
                     <View className="flex-row flex-wrap gap-2 mb-4">
                         {pets.map((pet) => (
                             <TouchableOpacity
@@ -94,7 +105,7 @@ export default function AddReminderScreen() {
                                 onPress={() => setSelectedPetId(pet.id)}
                                 className="px-4 py-2 rounded-full flex-row items-center gap-2"
                                 style={{
-                                    backgroundColor: selectedPetId === pet.id ? "#000" : "#f3f4f6",
+                                    backgroundColor: selectedPetId === pet.id ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                 }}
                             >
                                 <Ionicons
@@ -104,7 +115,7 @@ export default function AddReminderScreen() {
                                 />
                                 <Text
                                     className="text-sm font-medium"
-                                    style={{ color: selectedPetId === pet.id ? "#fff" : "#6b7280" }}
+                                    style={{ color: selectedPetId === pet.id ? "#fff" : (isDark ? "#98989d" : "#6b7280") }}
                                 >
                                     {pet.name}
                                 </Text>
@@ -113,9 +124,9 @@ export default function AddReminderScreen() {
                     </View>
 
                     {/* Title */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Title</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Title</Text>
                     <TextInput
-                        className="bg-gray-100 rounded-xl px-4 py-3 text-black text-sm mb-4"
+                        className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass} text-sm mb-4`}
                         placeholder="e.g. Rabies Vaccine Due"
                         placeholderTextColor="#9ca3af"
                         value={title}
@@ -123,7 +134,7 @@ export default function AddReminderScreen() {
                     />
 
                     {/* Type */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Type</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Type</Text>
                     <View className="flex-row flex-wrap gap-2 mb-4">
                         {[
                             { key: "general", label: "General", icon: "notifications-outline" },
@@ -137,7 +148,7 @@ export default function AddReminderScreen() {
                                 onPress={() => setType(t.key)}
                                 className="px-4 py-2 rounded-full flex-row items-center gap-2"
                                 style={{
-                                    backgroundColor: type === t.key ? "#000" : "#f3f4f6",
+                                    backgroundColor: type === t.key ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                 }}
                             >
                                 <Ionicons
@@ -147,7 +158,7 @@ export default function AddReminderScreen() {
                                 />
                                 <Text
                                     className="text-sm font-medium"
-                                    style={{ color: type === t.key ? "#fff" : "#6b7280" }}
+                                    style={{ color: type === t.key ? "#fff" : (isDark ? "#98989d" : "#6b7280") }}
                                 >
                                     {t.label}
                                 </Text>
@@ -156,13 +167,13 @@ export default function AddReminderScreen() {
                     </View>
 
                     {/* Due Date */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Due Date</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Due Date</Text>
                     <TouchableOpacity
-                        className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2 mb-4"
+                        className={`${inputBgClass} rounded-xl px-4 py-3 flex-row items-center gap-2 mb-4`}
                         onPress={() => setShowDatePicker(true)}
                     >
                         <Ionicons name="calendar-outline" size={16} color="#9ca3af" />
-                        <Text className="text-sm text-black">
+                        <Text className={`text-sm ${textClass}`}>
                             {dueDate.toLocaleDateString([], {
                                 month: "short",
                                 day: "numeric",
@@ -184,12 +195,12 @@ export default function AddReminderScreen() {
 
                     {/* Recurring Toggle */}
                     <View
-                        className="flex-row items-center justify-between p-4 rounded-2xl mb-4"
-                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                        className={`flex-row items-center justify-between p-4 rounded-2xl mb-4 ${cardBgClass}`}
+                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                     >
                         <View>
-                            <Text className="text-sm font-medium text-black">Recurring</Text>
-                            <Text className="text-xs text-gray-400">Repeat this reminder</Text>
+                            <Text className={`text-sm font-medium ${textClass}`}>Recurring</Text>
+                            <Text className={`text-xs ${textSecondaryClass}`}>Repeat this reminder</Text>
                         </View>
                         <Switch
                             value={isRecurring}
@@ -202,11 +213,11 @@ export default function AddReminderScreen() {
                     {/* Recurrence Text */}
                     {isRecurring && (
                         <View className="mb-4">
-                            <Text className="text-sm font-medium text-gray-700 mb-2">
+                            <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>
                                 Recurrence Description
                             </Text>
                             <TextInput
-                                className="bg-gray-100 rounded-xl px-4 py-3 text-black text-sm"
+                                className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass} text-sm`}
                                 placeholder="e.g. Every day at 8:00 AM"
                                 placeholderTextColor="#9ca3af"
                                 value={recurrence}
@@ -224,7 +235,7 @@ export default function AddReminderScreen() {
             </KeyboardAwareScrollView>
 
             {/* Save Button */}
-            <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-white border-t border-gray-100">
+            <View className={`absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 ${bgClass} border-t ${isDark ? "border-dark-border" : "border-gray-100"}`}>
                 <TouchableOpacity
                     className="bg-black rounded-xl py-4 items-center"
                     onPress={handleSave}

@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "../../context/ThemeContext";
 import type { PetEvent, Pet } from "../../types/index";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ function formatDate(timestamp: string) {
 }
 
 export default function ExpensesScreen() {
+    const { isDark } = useTheme();
     const [pets, setPets] = useState<Pet[]>([]);
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
     const [expenses, setExpenses] = useState<PetEvent[]>([]);
@@ -120,37 +122,42 @@ export default function ExpensesScreen() {
 
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 bg-white items-center justify-center">
-                <ActivityIndicator size="large" color="#000" />
+            <SafeAreaView className={`flex-1 ${bgClass} items-center justify-center`}>
+                <ActivityIndicator size="large" color={isDark ? "#fff" : "#000"} />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#fff" : "#000"} />
                 }
             >
                 <View className="px-5 pt-4 pb-24">
 
                     {/* Header with month navigator */}
                     <View className="flex-row justify-between items-center mb-6">
-                        <Text className="text-2xl font-bold text-black">Expenses</Text>
+                        <Text className={`text-2xl font-bold ${textClass}`}>Expenses</Text>
                         <View className="flex-row items-center gap-2">
                             <TouchableOpacity onPress={() => changeMonth(-1)}>
-                                <Ionicons name="chevron-back" size={20} color="#000" />
+                                <Ionicons name="chevron-back" size={20} color={isDark ? "#98989d" : "#000"} />
                             </TouchableOpacity>
-                            <Text className="text-sm font-medium text-black">
+                            <Text className={`text-sm font-medium ${textClass}`}>
                                 {getMonthName(currentMonth)}
                             </Text>
                             <TouchableOpacity onPress={() => changeMonth(1)}>
-                                <Ionicons name="chevron-forward" size={20} color="#000" />
+                                <Ionicons name="chevron-forward" size={20} color={isDark ? "#98989d" : "#000"} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -169,12 +176,12 @@ export default function ExpensesScreen() {
                                         onPress={() => fetchData(pet, currentMonth)}
                                         className="px-4 py-2 rounded-full"
                                         style={{
-                                            backgroundColor: selectedPet?.id === pet.id ? "#000" : "#f3f4f6",
+                                            backgroundColor: selectedPet?.id === pet.id ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                         }}
                                     >
                                         <Text
                                             className="text-sm font-medium"
-                                            style={{ color: selectedPet?.id === pet.id ? "#fff" : "#6b7280" }}
+                                            style={{ color: selectedPet?.id === pet.id ? "#fff" : (isDark ? "#98989d" : "#6b7280") }}
                                         >
                                             {pet.name}
                                         </Text>
@@ -198,10 +205,10 @@ export default function ExpensesScreen() {
                     {/* Category Breakdown with progress bars */}
                     {breakdown.length > 0 && (
                         <View
-                            className="rounded-2xl p-4 mb-6"
-                            style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                            className={`rounded-2xl p-4 mb-6 ${cardBgClass}`}
+                            style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                         >
-                            <Text className="text-base font-semibold text-black mb-4">By Category</Text>
+                            <Text className={`text-base font-semibold ${textClass} mb-4`}>By Category</Text>
                             <View className="gap-4">
                                 {breakdown.map(([category, amount]) => (
                                     <View key={category}>
@@ -212,10 +219,10 @@ export default function ExpensesScreen() {
                                                 color="#6b7280"
                                                 style={{ marginRight: 8 }}
                                             />
-                                            <Text className="flex-1 text-sm font-medium text-black capitalize">
+                                            <Text className={`flex-1 text-sm font-medium ${textClass} capitalize`}>
                                                 {category}
                                             </Text>
-                                            <Text className="text-sm font-bold text-black">
+                                            <Text className={`text-sm font-bold ${textClass}`}>
                                                 ₱{amount.toLocaleString()}
                                             </Text>
                                         </View>
@@ -234,7 +241,7 @@ export default function ExpensesScreen() {
 
                     {/* Expense History */}
                     <View className="flex-row justify-between items-center mb-3">
-                        <Text className="text-base font-semibold text-black">Expense History</Text>
+                        <Text className={`text-base font-semibold ${textClass}`}>Expense History</Text>
                     </View>
 
                     {/* Category Filter */}
@@ -250,12 +257,12 @@ export default function ExpensesScreen() {
                                     onPress={() => setSelectedCategory(cat)}
                                     className="px-4 py-2 rounded-full"
                                     style={{
-                                        backgroundColor: selectedCategory === cat ? "#000" : "#f3f4f6",
+                                        backgroundColor: selectedCategory === cat ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                     }}
                                 >
                                     <Text
                                         className="text-sm font-medium capitalize"
-                                        style={{ color: selectedCategory === cat ? "#fff" : "#6b7280" }}
+                                        style={{ color: selectedCategory === cat ? "#fff" : (isDark ? "#98989d" : "#6b7280") }}
                                     >
                                         {cat === "all" ? "All" : cat}
                                     </Text>
@@ -271,8 +278,8 @@ export default function ExpensesScreen() {
                             : (e.metadata?.category || "other").toLowerCase() === selectedCategory
                     ).length === 0 ? (
                         <View className="items-center py-8">
-                            <Ionicons name="receipt-outline" size={40} color="#e5e7eb" />
-                            <Text className="text-gray-300 mt-2 text-sm">No expenses this month</Text>
+                            <Ionicons name="receipt-outline" size={40} color={isDark ? "#2c2c2e" : "#e5e7eb"} />
+                            <Text className={`${isDark ? "text-dark-text-tertiary" : "text-gray-300"} mt-2 text-sm`}>No expenses this month</Text>
                             <Text className="text-gray-400 text-xs mt-1">
                                 Tap + on Home to log an expense
                             </Text>
@@ -288,8 +295,8 @@ export default function ExpensesScreen() {
                                 .map((expense) => (
                                     <TouchableOpacity
                                         key={expense.id}
-                                        className="flex-row items-center p-4 bg-white rounded-2xl"
-                                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                        className={`flex-row items-center p-4 ${cardBgClass} rounded-2xl`}
+                                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                     >
                                         <View
                                             className="w-10 h-10 rounded-full items-center justify-center mr-3"
@@ -311,14 +318,14 @@ export default function ExpensesScreen() {
                                             />
                                         </View>
                                         <View className="flex-1">
-                                            <Text className="text-sm font-semibold text-black capitalize">
+                                            <Text className={`text-sm font-semibold ${textClass} capitalize`}>
                                                 {expense.metadata?.category || "Other"}
                                             </Text>
-                                            <Text className="text-xs text-gray-400 mt-0.5">
+                                            <Text className={`text-xs ${textSecondaryClass} mt-0.5`}>
                                                 {selectedPet?.name} · {formatDate(expense.timestamp)}
                                             </Text>
                                         </View>
-                                        <Text className="text-sm font-bold text-black">
+                                        <Text className={`text-sm font-bold ${textClass}`}>
                                             ₱{(expense.metadata?.amount || 0).toLocaleString()}
                                         </Text>
                                     </TouchableOpacity>

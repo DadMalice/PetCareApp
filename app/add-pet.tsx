@@ -12,10 +12,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { usePet } from "../context/PetContext";
+import { useTheme } from "../context/ThemeContext";
+import { StatusBar } from "expo-status-bar";
 
 export default function AddPetScreen() {
     const router = useRouter();
     const { refreshPets } = usePet();
+    const { isDark } = useTheme();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -24,6 +27,13 @@ export default function AddPetScreen() {
     const [age, setAge] = useState("");
     const [weight, setWeight] = useState("");
     const [gender, setGender] = useState<"Male" | "Female" | "">("");
+
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+    const inputBgClass = isDark ? "bg-dark-card" : "bg-gray-100";
+    const inputTextClass = isDark ? "text-dark-text" : "text-black";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
 
     async function handleSave() {
         if (!name || !gender) {
@@ -57,30 +67,31 @@ export default function AddPetScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
+            <StatusBar style={isDark ? "light" : "dark"} />
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 <View className="px-5 pt-4 pb-24">
 
                     {/* Header */}
                     <View className="flex-row items-center gap-3 mb-8">
                         <TouchableOpacity onPress={() => router.back()}>
-                            <Ionicons name="arrow-back" size={24} color="#000" />
+                            <Ionicons name="arrow-back" size={24} color={isDark ? "#f5f5f7" : "#000"} />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-black">Add Pet</Text>
+                        <Text className={`text-2xl font-bold ${textClass}`}>Add Pet</Text>
                     </View>
 
                     {/* Pet Avatar Placeholder */}
                     <View className="items-center mb-8">
-                        <View className="w-24 h-24 rounded-full bg-gray-100 items-center justify-center">
+                        <View className={`w-24 h-24 rounded-full items-center justify-center ${isDark ? "bg-dark-card" : "bg-gray-100"}`}>
                             <Ionicons name="camera-outline" size={32} color="#9ca3af" />
                         </View>
-                        <Text className="text-sm text-gray-400 mt-2">Add photo (coming soon)</Text>
+                        <Text className={`text-sm ${textSecondaryClass} mt-2`}>Add photo (coming soon)</Text>
                     </View>
 
                     {/* Name */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Pet Name *</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Pet Name *</Text>
                     <TextInput
-                        className="bg-gray-100 rounded-xl px-4 py-3 text-black mb-4"
+                        className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass} mb-4`}
                         placeholder="e.g. Max"
                         placeholderTextColor="#9ca3af"
                         value={name}
@@ -88,9 +99,9 @@ export default function AddPetScreen() {
                     />
 
                     {/* Breed */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Breed</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Breed</Text>
                     <TextInput
-                        className="bg-gray-100 rounded-xl px-4 py-3 text-black mb-4"
+                        className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass} mb-4`}
                         placeholder="e.g. Golden Retriever"
                         placeholderTextColor="#9ca3af"
                         value={breed}
@@ -100,9 +111,9 @@ export default function AddPetScreen() {
                     {/* Age + Weight */}
                     <View className="flex-row gap-4 mb-4">
                         <View className="flex-1">
-                            <Text className="text-sm font-medium text-gray-700 mb-2">Age (years)</Text>
+                            <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Age (years)</Text>
                             <TextInput
-                                className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                 placeholder="e.g. 4"
                                 placeholderTextColor="#9ca3af"
                                 value={age}
@@ -111,9 +122,9 @@ export default function AddPetScreen() {
                             />
                         </View>
                         <View className="flex-1">
-                            <Text className="text-sm font-medium text-gray-700 mb-2">Weight (kg)</Text>
+                            <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Weight (kg)</Text>
                             <TextInput
-                                className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                 placeholder="e.g. 28"
                                 placeholderTextColor="#9ca3af"
                                 value={weight}
@@ -124,7 +135,7 @@ export default function AddPetScreen() {
                     </View>
 
                     {/* Gender */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Gender *</Text>
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Gender *</Text>
                     <View className="flex-row gap-4 mb-8">
                         {["Male", "Female"].map((g) => (
                             <TouchableOpacity
@@ -132,13 +143,13 @@ export default function AddPetScreen() {
                                 onPress={() => setGender(g as "Male" | "Female")}
                                 className="flex-1 py-3 rounded-xl border items-center"
                                 style={{
-                                    backgroundColor: gender === g ? "#000" : "#f9fafb",
-                                    borderColor: gender === g ? "#000" : "#f3f4f6",
+                                    backgroundColor: gender === g ? "#000" : (isDark ? "#1c1c1e" : "#f9fafb"),
+                                    borderColor: gender === g ? "#000" : (isDark ? "#2c2c2e" : "#f3f4f6"),
                                 }}
                             >
                                 <Text
                                     className="font-medium"
-                                    style={{ color: gender === g ? "#fff" : "#6b7280" }}
+                                    style={{ color: gender === g ? "#fff" : (isDark ? "#98989d" : "#6b7280") }}
                                 >
                                     {g}
                                 </Text>
@@ -155,7 +166,7 @@ export default function AddPetScreen() {
             </ScrollView>
 
             {/* Save Button */}
-            <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-white border-t border-gray-100">
+            <View className={`absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 ${bgClass} border-t ${isDark ? "border-dark-border" : "border-gray-100"}`}>
                 <TouchableOpacity
                     className="bg-black rounded-xl py-4 items-center"
                     onPress={handleSave}

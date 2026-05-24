@@ -16,6 +16,8 @@ import { supabase } from "../lib/supabase";
 import { useLocalSearchParams } from "expo-router";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { usePet } from "../context/PetContext";
+import { useTheme } from "../context/ThemeContext";
+import { StatusBar } from "expo-status-bar";
 
 
 const EVENT_TYPES = [
@@ -29,6 +31,7 @@ const EVENT_TYPES = [
 export default function AddEventScreen() {
     const router = useRouter();
     const { type, eventId } = useLocalSearchParams<{ type: string; eventId: string }>();
+    const { isDark } = useTheme();
     const [selectedType, setSelectedType] = useState<string | null>(type || null);
     const [loading, setLoading] = useState(false);
     const [fetchingEvent, setFetchingEvent] = useState(!!eventId);
@@ -59,6 +62,13 @@ export default function AddEventScreen() {
     // Symptom
     const [symptomName, setSymptomName] = useState("");
     const [severity, setSeverity] = useState("");
+
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+    const inputBgClass = isDark ? "bg-dark-card" : "bg-gray-100";
+    const inputTextClass = isDark ? "text-dark-text" : "text-black";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
 
     function buildMetadata() {
         switch (selectedType) {
@@ -197,7 +207,8 @@ export default function AddEventScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
+            <StatusBar style={isDark ? "light" : "dark"} />
             <KeyboardAwareScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
@@ -210,15 +221,15 @@ export default function AddEventScreen() {
                     {/* Header */}
                     <View className="flex-row items-center gap-3 mb-8">
                         <TouchableOpacity onPress={() => router.back()}>
-                            <Ionicons name="arrow-back" size={24} color="#000" />
+                            <Ionicons name="arrow-back" size={24} color={isDark ? "#f5f5f7" : "#000"} />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-black">
+                        <Text className={`text-2xl font-bold ${textClass}`}>
                             {isEditing ? "Edit Event" : "Add Event"}
                         </Text>
                     </View>
 
                     {/* Event Type Selector */}
-                    <Text className="text-base font-semibold text-black mb-3">Event Type</Text>
+                    <Text className={`text-base font-semibold ${textClass} mb-3`}>Event Type</Text>
                     <View className="flex-row flex-wrap gap-3 mb-8">
                         {EVENT_TYPES.map((et) => (
                             <TouchableOpacity
@@ -226,8 +237,8 @@ export default function AddEventScreen() {
                                 onPress={isEditing ? undefined : () => setSelectedType(et.type)}
                                 className="flex-row items-center gap-2 px-4 py-2.5 rounded-xl border"
                                 style={{
-                                    backgroundColor: selectedType === et.type ? et.color : "#f9fafb",
-                                    borderColor: selectedType === et.type ? et.iconColor : "#f3f4f6",
+                                    backgroundColor: selectedType === et.type ? et.color : (isDark ? "#1c1c1e" : "#f9fafb"),
+                                    borderColor: selectedType === et.type ? et.iconColor : (isDark ? "#2c2c2e" : "#f3f4f6"),
                                     opacity: isEditing && selectedType !== et.type ? 0.5 : 1,
                                 }}
                                 disabled={isEditing && selectedType !== et.type}
@@ -239,7 +250,7 @@ export default function AddEventScreen() {
                                 />
                                 <Text
                                     className="text-sm font-medium"
-                                    style={{ color: selectedType === et.type ? et.iconColor : "#6b7280" }}
+                                    style={{ color: selectedType === et.type ? et.iconColor : (isDark ? "#98989d" : "#6b7280") }}
                                 >
                                     {et.label}
                                 </Text>
@@ -250,13 +261,13 @@ export default function AddEventScreen() {
                     {/* Dynamic Form */}
                     {selectedType === "feeding" && (
                         <View className="gap-4">
-                            <Text className="text-base font-semibold text-black">Feeding Details</Text>
+                            <Text className={`text-base font-semibold ${textClass}`}>Feeding Details</Text>
 
                             {/* Food Type */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Food Type</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Food Type</Text>
                                 <TextInput
-                                    className="bg-gray-100 rounded-xl px-4 py-3 text-black text-sm"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass} text-sm`}
                                     placeholder="e.g. Dry Kibble"
                                     placeholderTextColor="#9ca3af"
                                     value={foodType}
@@ -266,11 +277,11 @@ export default function AddEventScreen() {
 
                             {/* Quantity + Unit */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Quantity</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Quantity</Text>
                                 <View className="flex-row gap-3">
                                     {/* Number Input */}
                                     <TextInput
-                                        className="flex-1 bg-gray-100 rounded-xl px-4 py-3 text-black text-sm"
+                                        className={`flex-1 ${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass} text-sm`}
                                         placeholder="e.g. 1"
                                         placeholderTextColor="#9ca3af"
                                         value={feedingQuantity}
@@ -280,11 +291,11 @@ export default function AddEventScreen() {
 
                                     {/* Unit Selector */}
                                     <TouchableOpacity
-                                        className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2"
+                                        className={`${inputBgClass} rounded-xl px-4 py-3 flex-row items-center gap-2`}
                                         style={{ minWidth: 100 }}
                                         onPress={() => setShowUnitDropdown(true)}
                                     >
-                                        <Text className="text-sm text-black">{feedingUnit}</Text>
+                                        <Text className={`text-sm ${textClass}`}>{feedingUnit}</Text>
                                         <Ionicons name="chevron-down" size={14} color="#9ca3af" />
                                     </TouchableOpacity>
                                 </View>
@@ -303,10 +314,10 @@ export default function AddEventScreen() {
                                     onPress={() => setShowUnitDropdown(false)}
                                 >
                                     <View
-                                        className="mx-5 mt-64 bg-white rounded-2xl overflow-hidden"
+                                        className={`mx-5 mt-64 rounded-2xl overflow-hidden ${cardBgClass}`}
                                         style={{ elevation: 10 }}
                                     >
-                                        <Text className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2">
+                                        <Text className={`text-sm font-semibold ${textSecondaryClass} px-4 pt-4 pb-2`}>
                                             Select Unit
                                         </Text>
                                         {["cup", "g", "kg", "ml", "l", "piece"].map((unit, index, arr) => (
@@ -315,17 +326,17 @@ export default function AddEventScreen() {
                                                 className="px-4 py-3 flex-row items-center justify-between"
                                                 style={{
                                                     borderBottomWidth: index < arr.length - 1 ? 1 : 0,
-                                                    borderBottomColor: "#f3f4f6",
-                                                    backgroundColor: feedingUnit === unit ? "#f9fafb" : "#fff",
+                                                    borderBottomColor: isDark ? "#2c2c2e" : "#f3f4f6",
+                                                    backgroundColor: feedingUnit === unit ? (isDark ? "#2c2c2e" : "#f9fafb") : "transparent",
                                                 }}
                                                 onPress={() => {
                                                     setFeedingUnit(unit);
                                                     setShowUnitDropdown(false);
                                                 }}
                                             >
-                                                <Text className="text-sm text-black">{unit}</Text>
+                                                <Text className={`text-sm ${textClass}`}>{unit}</Text>
                                                 {feedingUnit === unit && (
-                                                    <Ionicons name="checkmark" size={16} color="#000" />
+                                                    <Ionicons name="checkmark" size={16} color={isDark ? "#f5f5f7" : "#000"} />
                                                 )}
                                             </TouchableOpacity>
                                         ))}
@@ -335,13 +346,13 @@ export default function AddEventScreen() {
 
                             {/* Time */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Time</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Time</Text>
                                 <TouchableOpacity
-                                    className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 flex-row items-center gap-2`}
                                     onPress={() => setShowTimePicker(true)}
                                 >
                                     <Ionicons name="time-outline" size={16} color="#9ca3af" />
-                                    <Text className="text-sm text-black">
+                                    <Text className={`text-sm ${textClass}`}>
                                         {feedingTime.toLocaleTimeString([], {
                                             hour: "2-digit",
                                             minute: "2-digit",
@@ -366,11 +377,11 @@ export default function AddEventScreen() {
 
                     {selectedType === "expense" && (
                         <View className="gap-4">
-                            <Text className="text-base font-semibold text-black">Expense Details</Text>
+                            <Text className={`text-base font-semibold ${textClass}`}>Expense Details</Text>
 
                             {/* Category */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Category</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Category</Text>
                                 <View className="flex-row flex-wrap gap-2">
                                     {[
                                         { label: "Food", color: "#dcfce7", activeColor: "#16a34a", icon: "fast-food-outline" },
@@ -385,9 +396,9 @@ export default function AddEventScreen() {
                                             onPress={() => setExpenseCategory(cat.label)}
                                             className="px-4 py-2 rounded-full flex-row items-center gap-2"
                                             style={{
-                                                backgroundColor: expenseCategory === cat.label ? cat.color : "#f3f4f6",
+                                                backgroundColor: expenseCategory === cat.label ? cat.color : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                                 borderWidth: 1,
-                                                borderColor: expenseCategory === cat.label ? cat.activeColor : "#f3f4f6",
+                                                borderColor: expenseCategory === cat.label ? cat.activeColor : (isDark ? "#2c2c2e" : "#f3f4f6"),
                                             }}
                                         >
                                             <Ionicons
@@ -398,7 +409,7 @@ export default function AddEventScreen() {
                                             <Text
                                                 className="text-sm font-medium"
                                                 style={{
-                                                    color: expenseCategory === cat.label ? cat.activeColor : "#6b7280",
+                                                    color: expenseCategory === cat.label ? cat.activeColor : (isDark ? "#98989d" : "#6b7280"),
                                                 }}
                                             >
                                                 {cat.label}
@@ -410,11 +421,11 @@ export default function AddEventScreen() {
 
                             {/* Amount */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Amount (₱)</Text>
-                                <View className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2">
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Amount (₱)</Text>
+                                <View className={`${inputBgClass} rounded-xl px-4 py-3 flex-row items-center gap-2`}>
                                     <Ionicons name="cash-outline" size={16} color="#9ca3af" />
                                     <TextInput
-                                        className="flex-1 text-black text-sm"
+                                        className={`flex-1 ${inputTextClass} text-sm`}
                                         placeholder="0.00"
                                         placeholderTextColor="#9ca3af"
                                         value={expenseAmount}
@@ -426,13 +437,13 @@ export default function AddEventScreen() {
 
                             {/* Date */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Date</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Date</Text>
                                 <TouchableOpacity
-                                    className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 flex-row items-center gap-2`}
                                     onPress={() => setShowDatePicker(true)}
                                 >
                                     <Ionicons name="calendar-outline" size={16} color="#9ca3af" />
-                                    <Text className="text-sm text-black">
+                                    <Text className={`text-sm ${textClass}`}>
                                         {expenseDate.toLocaleDateString([], {
                                             month: "short",
                                             day: "numeric",
@@ -456,11 +467,11 @@ export default function AddEventScreen() {
 
                             {/* Description */}
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Description</Text>
-                                <View className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2">
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Description</Text>
+                                <View className={`${inputBgClass} rounded-xl px-4 py-3 flex-row items-center gap-2`}>
                                     <Ionicons name="create-outline" size={16} color="#9ca3af" />
                                     <TextInput
-                                        className="flex-1 text-black text-sm"
+                                        className={`flex-1 ${inputTextClass} text-sm`}
                                         placeholder="e.g. Annual checkup"
                                         placeholderTextColor="#9ca3af"
                                         value={expenseDescription}
@@ -474,11 +485,11 @@ export default function AddEventScreen() {
 
                     {selectedType === "medication" && (
                         <View className="gap-4">
-                            <Text className="text-base font-semibold text-black">Medication Details</Text>
+                            <Text className={`text-base font-semibold ${textClass}`}>Medication Details</Text>
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Medication Name</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Medication Name</Text>
                                 <TextInput
-                                    className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                     placeholder="e.g. Heartgard"
                                     placeholderTextColor="#9ca3af"
                                     value={medName}
@@ -486,9 +497,9 @@ export default function AddEventScreen() {
                                 />
                             </View>
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Dose</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Dose</Text>
                                 <TextInput
-                                    className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                     placeholder="e.g. 1 tablet"
                                     placeholderTextColor="#9ca3af"
                                     value={medDose}
@@ -500,11 +511,11 @@ export default function AddEventScreen() {
 
                     {selectedType === "vaccine" && (
                         <View className="gap-4">
-                            <Text className="text-base font-semibold text-black">Vaccine Details</Text>
+                            <Text className={`text-base font-semibold ${textClass}`}>Vaccine Details</Text>
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Vaccine Name</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Vaccine Name</Text>
                                 <TextInput
-                                    className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                     placeholder="e.g. Rabies Booster"
                                     placeholderTextColor="#9ca3af"
                                     value={vaccineName}
@@ -512,9 +523,9 @@ export default function AddEventScreen() {
                                 />
                             </View>
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Next Due Date</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Next Due Date</Text>
                                 <TextInput
-                                    className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                     placeholder="e.g. 2026-09-01"
                                     placeholderTextColor="#9ca3af"
                                     value={nextDue}
@@ -526,11 +537,11 @@ export default function AddEventScreen() {
 
                     {selectedType === "symptom" && (
                         <View className="gap-4">
-                            <Text className="text-base font-semibold text-black">Symptom Details</Text>
+                            <Text className={`text-base font-semibold ${textClass}`}>Symptom Details</Text>
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Symptom</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Symptom</Text>
                                 <TextInput
-                                    className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                    className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                     placeholder="e.g. Itchy Skin"
                                     placeholderTextColor="#9ca3af"
                                     value={symptomName}
@@ -538,7 +549,7 @@ export default function AddEventScreen() {
                                 />
                             </View>
                             <View>
-                                <Text className="text-sm text-gray-600 mb-2">Severity</Text>
+                                <Text className={`text-sm ${textSecondaryClass} mb-2`}>Severity</Text>
                                 <View className="flex-row gap-3">
                                     {["Mild", "Moderate", "Severe"].map((s) => (
                                         <TouchableOpacity
@@ -546,13 +557,13 @@ export default function AddEventScreen() {
                                             onPress={() => setSeverity(s)}
                                             className="flex-1 py-2.5 rounded-xl border items-center"
                                             style={{
-                                                backgroundColor: severity === s ? "#fee2e2" : "#f9fafb",
-                                                borderColor: severity === s ? "#dc2626" : "#f3f4f6",
+                                                backgroundColor: severity === s ? "#fee2e2" : (isDark ? "#1c1c1e" : "#f9fafb"),
+                                                borderColor: severity === s ? "#dc2626" : (isDark ? "#2c2c2e" : "#f3f4f6"),
                                             }}
                                         >
                                             <Text
                                                 className="text-sm font-medium"
-                                                style={{ color: severity === s ? "#dc2626" : "#6b7280" }}
+                                                style={{ color: severity === s ? "#dc2626" : (isDark ? "#98989d" : "#6b7280") }}
                                             >
                                                 {s}
                                             </Text>
@@ -566,9 +577,9 @@ export default function AddEventScreen() {
                     {/* Notes (shared) */}
                     {selectedType && (
                         <View className="mt-4">
-                            <Text className="text-sm text-gray-600 mb-2">Notes (optional)</Text>
+                            <Text className={`text-sm ${textSecondaryClass} mb-2`}>Notes (optional)</Text>
                             <TextInput
-                                className="bg-gray-100 rounded-xl px-4 py-3 text-black"
+                                className={`${inputBgClass} rounded-xl px-4 py-3 ${inputTextClass}`}
                                 placeholder="Any additional notes..."
                                 placeholderTextColor="#9ca3af"
                                 value={notes}
@@ -589,7 +600,7 @@ export default function AddEventScreen() {
 
             {/* Save Button */}
             {selectedType && (
-                <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-white border-t border-gray-100">
+                <View className={`absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 ${bgClass} border-t ${isDark ? "border-dark-border" : "border-gray-100"}`}>
                     <TouchableOpacity
                         className="bg-black rounded-xl py-4 items-center"
                         onPress={handleSave}

@@ -9,11 +9,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { StatusBar } from "expo-status-bar";
 
 export default function SignUpScreen() {
     const router = useRouter();
+    const { isDark } = useTheme();
 
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
@@ -67,8 +70,16 @@ export default function SignUpScreen() {
         setLoading(false);
     }
 
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+    const textThirdClass = isDark ? "text-dark-text-secondary font-bold" : "text-gray-400 font-bold";
+    const inputBgClass = isDark ? "bg-dark-card" : "bg-gray-100";
+    const inputTextClass = isDark ? "text-dark-text" : "text-black";
+
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
+            <StatusBar style={isDark ? "light" : "dark"} />
             <KeyboardAwareScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
@@ -86,25 +97,25 @@ export default function SignUpScreen() {
                         <Ionicons
                             name="arrow-back"
                             size={24}
-                            color="#000"
+                            color={isDark ? "#f5f5f7" : "#000"}
                         />
                     </TouchableOpacity>
 
                     {/* Header */}
-                    <Text className="text-3xl font-bold text-black mb-1">
+                    <Text className={`text-3xl font-bold ${textClass} mb-1`}>
                         Create Account
                     </Text>
 
-                    <Text className="text-gray-400 text-sm mb-8">
+                    <Text className={`${textSecondaryClass} text-sm mb-8`}>
                         Join PetCare and start tracking your pets
                     </Text>
 
                     {/* Full Name */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>
                         Full Name
                     </Text>
 
-                    <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-4">
+                    <View className={`flex-row items-center ${inputBgClass} rounded-xl px-4 py-3 mb-4`}>
                         <Ionicons
                             name="person-outline"
                             size={18}
@@ -113,7 +124,7 @@ export default function SignUpScreen() {
                         />
 
                         <TextInput
-                            className="flex-1 text-black text-sm"
+                            className={`flex-1 ${inputTextClass} text-sm`}
                             placeholder="Jane Doe"
                             placeholderTextColor="#9ca3af"
                             value={fullName}
@@ -122,13 +133,13 @@ export default function SignUpScreen() {
                     </View>
 
                     {/* Email */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>
                         Email
                     </Text>
 
                     <View
                         className={`flex-row items-center rounded-xl px-4 py-3 mb-2 border ${email.length === 0
-                            ? "bg-gray-100 border-transparent"
+                            ? `${inputBgClass} border-transparent`
                             : emailValid
                                 ? "bg-green-50 border-green-500"
                                 : "bg-red-50 border-red-500"
@@ -142,7 +153,7 @@ export default function SignUpScreen() {
                         />
 
                         <TextInput
-                            className="flex-1 text-black text-sm"
+                            className={`flex-1 ${inputTextClass} text-sm`}
                             placeholder="jane@email.com"
                             placeholderTextColor="#9ca3af"
                             value={email}
@@ -166,13 +177,13 @@ export default function SignUpScreen() {
                     )}
 
                     {/* Password */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>
                         Password
                     </Text>
 
                     <View
                         className={`flex-row items-center rounded-xl px-4 py-3 mb-2 border ${password.length === 0
-                            ? "bg-gray-100 border-transparent"
+                            ? `${inputBgClass} border-transparent`
                             : passwordValid
                                 ? "bg-green-50 border-green-500"
                                 : "bg-red-50 border-red-500"
@@ -186,7 +197,7 @@ export default function SignUpScreen() {
                         />
 
                         <TextInput
-                            className="flex-1 text-black text-sm"
+                            className={`flex-1 ${inputTextClass} text-sm`}
                             placeholder="Must be at least 8 characters"
                             placeholderTextColor="#9ca3af"
                             value={password}
@@ -225,13 +236,13 @@ export default function SignUpScreen() {
                     )}
 
                     {/* Confirm Password */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>
                         Confirm Password
                     </Text>
 
                     <View
                         className={`flex-row items-center rounded-xl px-4 py-3 mb-2 border ${confirmPassword.length === 0
-                            ? "bg-gray-100 border-transparent"
+                            ? `${inputBgClass} border-transparent`
                             : passwordsMatch
                                 ? "bg-green-50 border-green-500"
                                 : "bg-red-50 border-red-500"
@@ -245,7 +256,7 @@ export default function SignUpScreen() {
                         />
 
                         <TextInput
-                            className="flex-1 text-black text-sm"
+                            className={`flex-1 ${inputTextClass} text-sm`}
                             placeholder="Should match the password above"
                             placeholderTextColor="#9ca3af"
                             value={confirmPassword}
@@ -286,13 +297,13 @@ export default function SignUpScreen() {
                     )}
 
                     {/* Terms */}
-                    <Text className="text-xs text-gray-400 mb-6">
+                    <Text className={`text-xs ${textSecondaryClass} mb-6`}>
                         By signing up, you agree to our{" "}
-                        <Text className="text-black font-semibold">
+                        <Text className={`font-semibold ${textClass}`}>
                             Terms of Service
                         </Text>{" "}
                         and{" "}
-                        <Text className="text-black font-semibold">
+                        <Text className={`font-semibold ${textClass}`}>
                             Privacy Policy
                         </Text>
                     </Text>
@@ -358,14 +369,14 @@ export default function SignUpScreen() {
 
                     {/* Login Link */}
                     <View className="flex-row justify-center">
-                        <Text className="text-gray-500">
+                        <Text className={`${textSecondaryClass}`}>
                             Already have an account?{" "}
                         </Text>
 
                         <TouchableOpacity
                             onPress={() => router.back()}
                         >
-                            <Text className="text-black font-bold">
+                            <Text className={`${textThirdClass}`}>
                                 Log In
                             </Text>
                         </TouchableOpacity>

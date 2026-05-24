@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { usePet } from "../../context/PetContext";
+import { useTheme } from "../../context/ThemeContext";
 import type { Pet, PetEvent } from "../../types/index";
 import { useFocusEffect } from "expo-router";
 
@@ -54,6 +55,7 @@ function formatShortDate(timestamp: string) {
 
 export default function HealthScreen() {
     const { pets, selectedPet, setSelectedPet } = usePet();
+    const { isDark } = useTheme();
     const [events, setEvents] = useState<PetEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -218,23 +220,28 @@ export default function HealthScreen() {
     const upcomingSchedule = getUpcomingSchedule();
     const filteredEvents = getFilteredEvents();
 
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 bg-white items-center justify-center">
-                <ActivityIndicator size="large" color="#000" />
+            <SafeAreaView className={`flex-1 ${bgClass} items-center justify-center`}>
+                <ActivityIndicator size="large" color={isDark ? "#fff" : "#000"} />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
 
             {/* Fixed Top Section */}
             <View className="px-5 pt-4">
 
                 {/* Header */}
                 <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-2xl font-bold text-black">Health</Text>
+                    <Text className={`text-2xl font-bold ${textClass}`}>Health</Text>
 
                     {/* Pet Status Badge */}
                     {selectedPet && (
@@ -277,12 +284,12 @@ export default function HealthScreen() {
                                     onPress={() => setSelectedPet(pet)}
                                     className="px-4 py-2 rounded-full flex-row items-center gap-2"
                                     style={{
-                                        backgroundColor: selectedPet?.id === pet.id ? "#000" : "#f3f4f6",
+                                        backgroundColor: selectedPet?.id === pet.id ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                     }}
                                 >
                                     <Text
                                         className="text-sm font-medium"
-                                        style={{ color: selectedPet?.id === pet.id ? "#fff" : "#6b7280" }}
+                                        style={{ color: selectedPet?.id === pet.id ? "#fff" : (isDark ? "#98989d" : "#6b7280") }}
                                     >
                                         {pet.name}
                                     </Text>
@@ -296,12 +303,12 @@ export default function HealthScreen() {
                 <View className="flex-row gap-3 mb-6">
                     {/* Next Vaccine */}
                     <View
-                        className="flex-1 p-3 rounded-2xl bg-white"
-                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                        className={`flex-1 p-3 rounded-2xl ${cardBgClass}`}
+                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                     >
                         <Ionicons name="fitness-outline" size={18} color="#9ca3af" />
                         <Text className="text-xs text-gray-400 mt-2">Next Vaccine</Text>
-                        <Text className="text-sm font-bold text-black mt-0.5">
+                        <Text className={`text-sm font-bold ${textClass} mt-0.5`}>
                             {nextVaccine ? nextVaccine.metadata.name : "--"}
                         </Text>
                         <Text className="text-xs text-gray-400">
@@ -311,12 +318,12 @@ export default function HealthScreen() {
 
                     {/* Active Meds */}
                     <View
-                        className="flex-1 p-3 rounded-2xl bg-white"
-                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                        className={`flex-1 p-3 rounded-2xl ${cardBgClass}`}
+                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                     >
                         <Ionicons name="medical-outline" size={18} color="#9ca3af" />
                         <Text className="text-xs text-gray-400 mt-2">Active Meds</Text>
-                        <Text className="text-sm font-bold text-black mt-0.5">
+                        <Text className={`text-sm font-bold ${textClass} mt-0.5`}>
                             {activeMeds.length > 0 ? `${activeMeds.length} active` : "None"}
                         </Text>
                         <Text className="text-xs text-gray-400">
@@ -326,12 +333,12 @@ export default function HealthScreen() {
 
                     {/* Last Visit */}
                     <View
-                        className="flex-1 p-3 rounded-2xl bg-white"
-                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                        className={`flex-1 p-3 rounded-2xl ${cardBgClass}`}
+                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                     >
                         <Ionicons name="medkit-outline" size={18} color="#9ca3af" />
                         <Text className="text-xs text-gray-400 mt-2">Last Visit</Text>
-                        <Text className="text-sm font-bold text-black mt-0.5">
+                        <Text className={`text-sm font-bold ${textClass} mt-0.5`}>
                             {lastVisit ? formatShortDate(lastVisit.timestamp) : "--"}
                         </Text>
                         <Text className="text-xs text-gray-400">
@@ -344,7 +351,7 @@ export default function HealthScreen() {
                 {upcomingSchedule.length > 0 && (
                     <View className="mb-6">
                         <View className="flex-row justify-between items-center mb-3">
-                            <Text className="text-base font-semibold text-black">
+                            <Text className={`text-base font-semibold ${textClass}`}>
                                 Upcoming Schedule
                             </Text>
                             <TouchableOpacity>
@@ -353,8 +360,8 @@ export default function HealthScreen() {
                         </View>
 
                         <View
-                            className="rounded-2xl overflow-hidden bg-white"
-                            style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                            className={`rounded-2xl overflow-hidden ${cardBgClass}`}
+                            style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                         >
                             {upcomingSchedule.map((event, index) => (
                                 <View
@@ -362,12 +369,12 @@ export default function HealthScreen() {
                                     className="flex-row items-center px-4 py-3"
                                     style={{
                                         borderBottomWidth: index < upcomingSchedule.length - 1 ? 1 : 0,
-                                        borderBottomColor: "#f3f4f6",
+                                        borderBottomColor: isDark ? "#2c2c2e" : "#f3f4f6",
                                     }}
                                 >
                                     <View
                                         className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                                        style={{ backgroundColor: "#f3f4f6" }}
+                                        style={{ backgroundColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                     >
                                         <Ionicons
                                             name={EVENT_ICONS[event.type]}
@@ -376,7 +383,7 @@ export default function HealthScreen() {
                                         />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-sm font-semibold text-black">
+                                        <Text className={`text-sm font-semibold ${textClass}`}>
                                             {event.metadata?.name || event.type}
                                         </Text>
                                         <Text className="text-xs text-gray-400">
@@ -394,7 +401,7 @@ export default function HealthScreen() {
 
                 {/* Health Timeline */}
                 <View className="flex-row justify-between items-center mb-3">
-                    <Text className="text-base font-semibold text-black">
+                    <Text className={`text-base font-semibold ${textClass}`}>
                         Health Timeline
                     </Text>
                 </View>
@@ -417,13 +424,13 @@ export default function HealthScreen() {
                                 onPress={() => setActiveFilter(filter.key)}
                                 className="px-4 py-2 rounded-full"
                                 style={{
-                                    backgroundColor: activeFilter === filter.key ? "#000" : "#f3f4f6",
+                                    backgroundColor: activeFilter === filter.key ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),
                                 }}
                             >
                                 <Text
                                     className="text-sm font-medium"
                                     style={{
-                                        color: activeFilter === filter.key ? "#fff" : "#6b7280",
+                                        color: activeFilter === filter.key ? "#fff" : (isDark ? "#98989d" : "#6b7280"),
                                     }}
                                 >
                                     {filter.label}
@@ -440,14 +447,14 @@ export default function HealthScreen() {
                 className="flex-1 px-5"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={fetchHealthEvents} />
+                    <RefreshControl refreshing={refreshing} onRefresh={fetchHealthEvents} tintColor={isDark ? "#fff" : "#000"} />
                 }
             >
                 <View className="gap-3 pb-24">
                     {filteredEvents.length === 0 ? (
                         <View className="items-center py-8">
-                            <Ionicons name="heart-outline" size={40} color="#e5e7eb" />
-                            <Text className="text-gray-300 mt-2 text-sm">No health events yet</Text>
+                            <Ionicons name="heart-outline" size={40} color={isDark ? "#2c2c2e" : "#e5e7eb"} />
+                            <Text className={`${isDark ? "text-dark-text-tertiary" : "text-gray-300"} mt-2 text-sm`}>No health events yet</Text>
                             <Text className="text-gray-400 text-xs mt-1">
                                 Log vaccines, medications or symptoms
                             </Text>
@@ -456,8 +463,8 @@ export default function HealthScreen() {
                         filteredEvents.map((event) => (
                             <View
                                 key={event.id}
-                                className="bg-white rounded-2xl p-4"
-                                style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                className={`${cardBgClass} rounded-2xl p-4`}
+                                style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                             >
                                 <View className="flex-row items-start gap-3">
                                     <View
@@ -466,7 +473,7 @@ export default function HealthScreen() {
                                     />
                                     <View className="flex-1">
                                         <View className="flex-row justify-between items-start">
-                                            <Text className="text-sm font-bold text-black">
+                                            <Text className={`text-sm font-bold ${textClass}`}>
                                                 {formatEventTitle(event)}
                                             </Text>
                                             <Text className="text-xs text-gray-400">

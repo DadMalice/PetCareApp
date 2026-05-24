@@ -3,11 +3,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "../../context/ThemeContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { StatusBar } from "expo-status-bar";
 
 export default function LoginScreen() {
     const router = useRouter();
+    const { isDark } = useTheme();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -22,8 +25,17 @@ export default function LoginScreen() {
         setLoading(false);
     }
 
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+    const textThirdClass = isDark ? "text-dark-text-secondary font-bold" : "text-gray-400 font-bold";
+    const inputBgClass = isDark ? "bg-dark-card" : "bg-gray-100";
+    const inputTextClass = isDark ? "text-dark-text" : "text-black";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
+
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
+            <StatusBar style={isDark ? "light" : "dark"} />
             <KeyboardAwareScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
@@ -37,16 +49,16 @@ export default function LoginScreen() {
                         <View className="w-20 h-20 bg-black rounded-2xl items-center justify-center mb-5">
                             <MaterialCommunityIcons name="paw" size={40} color="white" />
                         </View>
-                        <Text className="text-3xl font-bold text-black tracking-tight">PetCare</Text>
-                        <Text className="text-gray-400 mt-2 text-sm">Manage your pets and keep them healthy.</Text>
+                        <Text className={`text-3xl font-bold ${textClass} tracking-tight`}>PetCare</Text>
+                        <Text className={`${textSecondaryClass} mt-2 text-sm`}>Manage your pets and keep them healthy.</Text>
                     </View>
 
                     {/* Email */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Email</Text>
-                    <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-4">
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Email</Text>
+                    <View className={`flex-row items-center ${inputBgClass} rounded-xl px-4 py-3 mb-4`}>
                         <Ionicons name="mail-outline" size={18} color="#9ca3af" style={{ marginRight: 10 }} />
                         <TextInput
-                            className="flex-1 text-black text-sm"
+                            className={`flex-1 ${inputTextClass} text-sm`}
                             placeholder="your@email.com"
                             placeholderTextColor="#9ca3af"
                             value={email}
@@ -57,11 +69,11 @@ export default function LoginScreen() {
                     </View>
 
                     {/* Password */}
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Password</Text>
-                    <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-2">
+                    <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Password</Text>
+                    <View className={`flex-row items-center ${inputBgClass} rounded-xl px-4 py-3 mb-2`}>
                         <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" style={{ marginRight: 10 }} />
                         <TextInput
-                            className="flex-1 text-black text-sm"
+                            className={`flex-1 ${inputTextClass} text-sm`}
                             placeholder="Password"
                             placeholderTextColor="#9ca3af"
                             value={password}
@@ -126,9 +138,9 @@ export default function LoginScreen() {
 
                     {/* Sign Up Link */}
                     <View className="flex-row justify-center">
-                        <Text className="text-gray-500">Don't have an account? </Text>
+                        <Text className={`${textSecondaryClass}`}>Don't have an account? </Text>
                         <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
-                            <Text className="text-black font-bold">Sign Up</Text>
+                            <Text className={`${textThirdClass}`}>Sign Up</Text>
                         </TouchableOpacity>
                     </View>
 

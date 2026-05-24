@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { usePet } from "../../context/PetContext";
+import { useTheme } from "../../context/ThemeContext";
 import type { Reminder } from "../../types/index";
 
 function formatDate(timestamp: string) {
@@ -34,6 +35,7 @@ const RECURRENCE_ICONS: Record<string, any> = {
 export default function RemindersScreen() {
     const router = useRouter();
     const { selectedPet, pets } = usePet();
+    const { isDark } = useTheme();
     const [reminders, setReminders] = useState<Reminder[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -96,28 +98,33 @@ export default function RemindersScreen() {
     const recurring = reminders.filter((r) => r.is_recurring);
     const completed = reminders.filter((r) => r.is_completed);
 
+    const bgClass = isDark ? "bg-dark-bg" : "bg-white";
+    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
+    const textClass = isDark ? "text-dark-text" : "text-black";
+    const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
+
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 bg-white items-center justify-center">
-                <ActivityIndicator size="large" color="#000" />
+            <SafeAreaView className={`flex-1 ${bgClass} items-center justify-center`}>
+                <ActivityIndicator size="large" color={isDark ? "#fff" : "#000"} />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className={`flex-1 ${bgClass}`}>
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#fff" : "#000"} />
                 }
             >
                 <View className="px-5 pt-4 pb-24">
 
                     {/* Header */}
                     <View className="flex-row justify-between items-center mb-6">
-                        <Text className="text-2xl font-bold text-black">Reminders</Text>
+                        <Text className={`text-2xl font-bold ${textClass}`}>Reminders</Text>
                         <TouchableOpacity
                             className="w-9 h-9 rounded-full bg-black items-center justify-center"
                             onPress={() => router.push("/add-reminder")}
@@ -128,7 +135,7 @@ export default function RemindersScreen() {
 
                     {/* Upcoming */}
                     <View className="flex-row items-center gap-2 mb-3">
-                        <Text className="text-base font-semibold text-black">Upcoming</Text>
+                        <Text className={`text-base font-semibold ${textClass}`}>Upcoming</Text>
                         {upcoming.length > 0 && (
                             <View className="bg-black rounded-full w-6 h-6 items-center justify-center">
                                 <Text className="text-white text-xs font-bold">
@@ -140,8 +147,8 @@ export default function RemindersScreen() {
 
                     {upcoming.length === 0 ? (
                         <View
-                            className="rounded-2xl p-6 items-center mb-6"
-                            style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                            className={`rounded-2xl p-6 items-center mb-6 ${cardBgClass}`}
+                            style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                         >
                             <Ionicons name="checkmark-circle-outline" size={32} color="#9ca3af" />
                             <Text className="text-gray-400 text-sm mt-2">No upcoming reminders</Text>
@@ -151,16 +158,16 @@ export default function RemindersScreen() {
                             {upcoming.map((reminder) => (
                                 <View
                                     key={reminder.id}
-                                    className="bg-white rounded-2xl p-4"
-                                    style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                    className={`${cardBgClass} rounded-2xl p-4`}
+                                    style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                 >
                                     <View className="flex-row items-start">
                                         <View
                                             className="w-2.5 h-2.5 rounded-full mt-1.5 mr-3"
-                                            style={{ backgroundColor: "#000" }}
+                                            style={{ backgroundColor: isDark ? "#f5f5f7" : "#000" }}
                                         />
                                         <View className="flex-1">
-                                            <Text className="text-sm font-semibold text-black">
+                                            <Text className={`text-sm font-semibold ${textClass}`}>
                                                 {reminder.title}
                                             </Text>
                                             <View className="flex-row items-center gap-2 mt-1">
@@ -191,7 +198,7 @@ export default function RemindersScreen() {
 
                     {/* Recurring Schedules */}
                     <View className="flex-row justify-between items-center mb-3">
-                        <Text className="text-base font-semibold text-black">
+                        <Text className={`text-base font-semibold ${textClass}`}>
                             Recurring Schedules
                         </Text>
                         <TouchableOpacity>
@@ -201,8 +208,8 @@ export default function RemindersScreen() {
 
                     {recurring.length === 0 ? (
                         <View
-                            className="rounded-2xl p-6 items-center mb-6"
-                            style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                            className={`rounded-2xl p-6 items-center mb-6 ${cardBgClass}`}
+                            style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                         >
                             <Ionicons name="repeat-outline" size={32} color="#9ca3af" />
                             <Text className="text-gray-400 text-sm mt-2">
@@ -211,8 +218,8 @@ export default function RemindersScreen() {
                         </View>
                     ) : (
                         <View
-                            className="rounded-2xl overflow-hidden bg-white mb-6"
-                            style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                            className={`rounded-2xl overflow-hidden ${cardBgClass} mb-6`}
+                            style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                         >
                             {recurring.map((reminder, index) => (
                                 <View
@@ -220,12 +227,12 @@ export default function RemindersScreen() {
                                     className="flex-row items-center px-4 py-3"
                                     style={{
                                         borderBottomWidth: index < recurring.length - 1 ? 1 : 0,
-                                        borderBottomColor: "#f3f4f6",
+                                        borderBottomColor: isDark ? "#2c2c2e" : "#f3f4f6",
                                     }}
                                 >
                                     <View
                                         className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                                        style={{ backgroundColor: "#f3f4f6" }}
+                                        style={{ backgroundColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                     >
                                         <Ionicons
                                             name={RECURRENCE_ICONS[reminder.type] || "notifications-outline"}
@@ -234,7 +241,7 @@ export default function RemindersScreen() {
                                         />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-sm font-semibold text-black">
+                                        <Text className={`text-sm font-semibold ${textClass}`}>
                                             {reminder.title} — {getPetName(reminder.pet_id)}
                                         </Text>
                                         <Text className="text-xs text-gray-400 mt-0.5">
@@ -256,7 +263,7 @@ export default function RemindersScreen() {
                     {completed.length > 0 && (
                         <View>
                             <View className="flex-row justify-between items-center mb-3">
-                                <Text className="text-base font-semibold text-black">
+                                <Text className={`text-base font-semibold ${textClass}`}>
                                     Completed
                                 </Text>
                                 <TouchableOpacity>
@@ -268,18 +275,18 @@ export default function RemindersScreen() {
                                 {completed.slice(0, 2).map((reminder) => (
                                     <View
                                         key={reminder.id}
-                                        className="flex-row items-center gap-3 px-4 py-3 bg-white rounded-2xl"
-                                        style={{ borderWidth: 1, borderColor: "#f3f4f6" }}
+                                        className={`flex-row items-center gap-3 px-4 py-3 ${cardBgClass} rounded-2xl`}
+                                        style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                     >
                                         <View
                                             className="w-7 h-7 rounded-full items-center justify-center"
-                                            style={{ backgroundColor: "#f3f4f6" }}
+                                            style={{ backgroundColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                                         >
                                             <Ionicons name="checkmark" size={14} color="#6b7280" />
                                         </View>
                                         <View className="flex-1">
                                             <Text
-                                                className="text-sm text-gray-400"
+                                                className={`text-sm ${isDark ? "text-dark-text-tertiary" : "text-gray-400"}`}
                                                 style={{ textDecorationLine: "line-through" }}
                                             >
                                                 {reminder.title} — {getPetName(reminder.pet_id)}
@@ -300,8 +307,8 @@ export default function RemindersScreen() {
                     {/* Full Empty State */}
                     {reminders.length === 0 && (
                         <View className="items-center py-12">
-                            <Ionicons name="notifications-outline" size={48} color="#e5e7eb" />
-                            <Text className="text-gray-300 mt-3 text-base font-medium">
+                            <Ionicons name="notifications-outline" size={48} color={isDark ? "#2c2c2e" : "#e5e7eb"} />
+                            <Text className={`${isDark ? "text-dark-text-tertiary" : "text-gray-300"} mt-3 text-base font-medium`}>
                                 No reminders yet
                             </Text>
                             <Text className="text-gray-400 text-xs mt-1 text-center">

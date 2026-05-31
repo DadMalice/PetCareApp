@@ -2,6 +2,7 @@
 import "../global.css";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
+import * as Linking from "expo-linking";
 import { supabase } from "../lib/supabase";
 import type { Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -13,9 +14,48 @@ import { StatusBar } from "expo-status-bar";
 function RootLayoutInner() {
     const [session, setSession] = useState<Session | null>(null);
     const [initialized, setInitialized] = useState<boolean>(false);
+    const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(false);
     const router = useRouter();
     const segments = useSegments();
     const { isDark } = useTheme();
+
+    // Handle incoming deep links (e.g., password reset redirect from Supabase)
+    async function handleDeepLink(url: string) {
+        try {
+            if (!url.includes("reset-password") && !url.includes("type=recovery")) return;
+
+            setIsPasswordRecovery(true);
+
+            const urlObj = new URL(url);
+
+            // PKCE flow: code in query params
+            const code = urlObj.searchParams.get("code");
+            if (code) {
+                const { error } = await supabase.auth.exchangeCodeForSession(code);
+                if (error) console.error("Error exchanging code:", error);
+            }
+
+            // Implicit flow: tokens in URL fragment (#access_token=...&refresh_token=...)
+            if (urlObj.hash && urlObj.hash.length > 1) {
+                const fragment = urlObj.hash.substring(1);
+                const params = new URLSearchParams(fragment);
+                const accessToken = params.get("access_token");
+                const refreshToken = params.get("refresh_token");
+
+                if (accessToken && refreshToken) {
+                    const { error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    });
+                    if (error) console.error("Error setting session:", error);
+                }
+            }
+
+            router.replace("/(auth)/reset-password");
+        } catch (err) {
+            console.error("Error handling deep link:", err);
+        }
+    }
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
@@ -26,17 +66,38 @@ function RootLayoutInner() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event: AuthChangeEvent, session: Session | null) => {
                 setSession(session);
+                if (event === "PASSWORD_RECOVERY") {
+                    setIsPasswordRecovery(true);
+                    router.replace("/(auth)/reset-password");
+                } else {
+                    setIsPasswordRecovery(false);
+                }
             }
         );
-        return () => subscription.unsubscribe();
+
+        // Listen for deep links while app is running
+        const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
+            handleDeepLink(url);
+        });
+
+        // Check if app was opened via deep link (cold start)
+        Linking.getInitialURL().then((url) => {
+            if (url) handleDeepLink(url);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+            linkingSubscription.remove();
+        };
     }, []);
 
     useEffect(() => {
         if (!initialized) return;
+        if (isPasswordRecovery) return;
         const inAuth = segments[0] === "(auth)";
         if (!session && !inAuth) router.replace("/(auth)/login");
         if (session && inAuth) router.replace("/(tabs)");
-    }, [session, initialized]);
+    }, [session, initialized, isPasswordRecovery]);
 
     if (!initialized) {
         return (

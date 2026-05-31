@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import PetAvatar from "../components/PetAvatar";
 import { useRouter } from "expo-router";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
@@ -348,13 +349,13 @@ export default function HomeScreen() {
                             onPress={() => switchPet(pet)}
                         >
                             <View
-                                className="w-14 h-14 rounded-full bg-amber-200 items-center justify-center"
                                 style={{
                                     borderWidth: selectedPet?.id === pet.id ? 2 : 0,
                                     borderColor: isDark ? "#fff" : "#000",
+                                    borderRadius: 28,
                                 }}
                             >
-                                <MaterialCommunityIcons name="dog" size={28} color="#000" />
+                                <PetAvatar photoUrl={pet.photo_url} size={56} />
                             </View>
                             <Text
                                 className="text-xs mt-1"
@@ -387,9 +388,7 @@ export default function HomeScreen() {
                         style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                     >
                         <View className="flex-row items-center gap-4">
-                            <View className="w-16 h-16 rounded-full bg-amber-200 items-center justify-center">
-                                <MaterialCommunityIcons name="dog" size={32} color="#000" />
-                            </View>
+                            <PetAvatar photoUrl={selectedPet.photo_url} size={64} />
                             <View className="flex-1">
                                 <View className="flex-row items-center gap-2 mb-1">
                                     <Text className={`text-lg font-bold ${textClass}`}>{selectedPet.name}</Text>

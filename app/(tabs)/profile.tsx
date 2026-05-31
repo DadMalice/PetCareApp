@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../context/ThemeContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import PetAvatar from "../components/PetAvatar";
 import type { Pet } from "../../types/index";
 
 export default function ProfileScreen() {
@@ -128,11 +129,9 @@ export default function ProfileScreen() {
                                             borderWidth: 1,
                                             borderColor: isDark ? "#2c2c2e" : "#f3f4f6",
                                         }}
-                                        onPress={() => setSelectedPet(pet)}
+                                        onPress={() => router.push(`/edit-pet?petId=${pet.id}`)}
                                     >
-                                        <View className={`w-16 h-16 rounded-full items-center justify-center mb-3 ${isDark ? "bg-dark-border" : "bg-gray-100"}`}>
-                                            <MaterialCommunityIcons name="dog" size={32} color="#9ca3af" />
-                                        </View>
+                                        <PetAvatar photoUrl={pet.photo_url} size={64} className="mb-3" />
                                         <Text className={`font-bold ${textClass} text-base`}>{pet.name}</Text>
                                         <Text className={`${textSecondaryClass} text-xs mt-0.5`}>{pet.breed}</Text>
                                         <Text className={`${textSecondaryClass} text-xs mt-0.5`}>
@@ -152,11 +151,11 @@ export default function ProfileScreen() {
                                     }}
                                 >
                                     <View className="flex-row items-center gap-4 mb-3">
-                                        <View className={`w-16 h-16 rounded-full items-center justify-center ${isDark ? "bg-dark-border" : "bg-gray-100"}`}>
-                                            <MaterialCommunityIcons name="dog" size={32} color="#9ca3af" />
-                                        </View>
-                                        <View>
-                                            <Text className={`font-bold ${textClass} text-lg`}>{selectedPet.name}</Text>
+                                        <PetAvatar photoUrl={selectedPet.photo_url} size={64} />
+                                        <View className="flex-1">
+                                            <TouchableOpacity onPress={() => router.push(`/edit-pet?petId=${selectedPet.id}`)}>
+                                                <Text className={`font-bold ${textClass} text-lg`}>{selectedPet.name}</Text>
+                                            </TouchableOpacity>
                                             <Text className={`${textSecondaryClass} text-sm`}>{selectedPet.breed}</Text>
                                             <Text className={`${textSecondaryClass} text-xs`}>{selectedPet.age_years} yrs · {selectedPet.weight_kg} kg</Text>
                                         </View>
@@ -201,7 +200,7 @@ export default function ProfileScreen() {
 
                         {/* Dark Mode Toggle */}
                         <View
-                            className="flex-row items-center px-4 py-0"
+                            className="flex-row items-center px-4 py-4"
                             style={{ borderTopWidth: 1, borderTopColor: isDark ? "#2c2c2e" : "#f3f4f6" }}
                         >
                             <Ionicons

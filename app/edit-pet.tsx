@@ -9,22 +9,25 @@ import {
     Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useState, useEffect } from "react";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
+import * as ImageManipulator from "expo-image-manipulator"; // Added import
 import { supabase } from "../lib/supabase";
 import { usePet } from "../context/PetContext";
 import { useTheme } from "../context/ThemeContext";
-import { uploadPetPhoto } from "../lib/storage";
+import { uploadPetPhoto, deletePetPhoto } from "../lib/storage";
 import { StatusBar } from "expo-status-bar";
 
-export default function AddPetScreen() {
+export default function EditPetScreen() {
     const router = useRouter();
-    const { refreshPets } = usePet();
+    const { pets, refreshPets } = usePet();
     const { isDark } = useTheme();
+    const { petId } = useLocalSearchParams<{ petId: string }>();
+
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
     const [error, setError] = useState("");
 
     const [name, setName] = useState("");
@@ -33,13 +36,29 @@ export default function AddPetScreen() {
     const [weight, setWeight] = useState("");
     const [gender, setGender] = useState<"Male" | "Female" | "">("");
     const [photoUri, setPhotoUri] = useState<string | null>(null);
+    const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+    const [removePhoto, setRemovePhoto] = useState(false);
 
     const bgClass = isDark ? "bg-dark-bg" : "bg-white";
     const textClass = isDark ? "text-dark-text" : "text-black";
     const textSecondaryClass = isDark ? "text-dark-text-secondary" : "text-gray-400";
     const inputBgClass = isDark ? "bg-dark-card" : "bg-gray-100";
     const inputTextClass = isDark ? "text-dark-text" : "text-black";
-    const cardBgClass = isDark ? "bg-dark-card" : "bg-white";
+
+    // Load pet data
+    useEffect(() => {
+        if (!petId) return;
+        const pet = pets.find((p) => p.id === petId);
+        if (pet) {
+            setName(pet.name);
+            setBreed(pet.breed);
+            setAge(pet.age_years.toString());
+            setWeight(pet.weight_kg.toString());
+            setGender(pet.gender);
+            setExistingPhotoUrl(pet.photo_url || null);
+        }
+        setFetching(false);
+    }, [petId, pets]);
 
     async function pickPhoto() {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -50,37 +69,22 @@ export default function AddPetScreen() {
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
             quality: 0.7,
         });
 
         if (!result.canceled && result.assets[0]) {
-            const { width, height } = result.assets[0];
-
-            // Find the smallest dimension to form the crop square
-            const size = Math.min(width, height);
-
-            // Calculate offsets safely. If it's already a square, offsets will be 0.
-            const originX = width > height ? (width - size) / 2 : 0;
-            const originY = height > width ? (height - size) / 2 : 0;
-
-            const manipResult = await ImageManipulator.manipulateAsync(
-                result.assets[0].uri,
-                [
-                    { rotate: 0 },  // Apply EXIF orientation to pixel data first
-                    {
-                        crop: {
-                            originX: Math.max(0, Math.floor(originX)),
-                            originY: Math.max(0, Math.floor(originY)),
-                            width: Math.floor(size),
-                            height: Math.floor(size)
-                        }
-                    },
-                    { resize: { width: 600, height: 600 } }
-                ],
-                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-            );
-            setPhotoUri(manipResult.uri);
+            // The built-in editor (allowsEditing) already handled cropping to a square.
+            // Use the result directly — no additional manipulation needed.
+            setPhotoUri(result.assets[0].uri);
+            setRemovePhoto(false);
         }
+    }
+
+    function handleRemovePhoto() {
+        setPhotoUri(null);
+        setRemovePhoto(true);
     }
 
     async function handleSave() {
@@ -95,34 +99,39 @@ export default function AddPetScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Not logged in");
 
-            // Insert the pet
-            const { data: newPet, error: insertError } = await supabase
+            // Handle photo changes
+            let newPhotoUrl = existingPhotoUrl;
+
+            if (removePhoto && existingPhotoUrl) {
+                // Delete the old photo from storage
+                await deletePetPhoto(existingPhotoUrl);
+                newPhotoUrl = null;
+            }
+
+            if (photoUri) {
+                // Delete old photo if exists
+                if (existingPhotoUrl) {
+                    await deletePetPhoto(existingPhotoUrl);
+                }
+                // Upload new photo
+                const url = await uploadPetPhoto(user.id, petId!, photoUri);
+                if (url) newPhotoUrl = url;
+            }
+
+            // Update the pet
+            const { error: updateError } = await supabase
                 .from("pets")
-                .insert({
-                    user_id: user.id,
+                .update({
                     name,
                     breed,
                     age_years: parseFloat(age) || 0,
                     weight_kg: parseFloat(weight) || 0,
                     gender,
-                    status: "Healthy",
+                    photo_url: newPhotoUrl,
                 })
-                .select()
-                .single();
+                .eq("id", petId);
 
-            if (insertError) throw insertError;
-
-            // Upload photo if selected
-            if (photoUri && newPet) {
-                const photoUrl = await uploadPetPhoto(user.id, newPet.id, photoUri);
-                if (photoUrl) {
-                    // Update the pet record with the photo URL
-                    await supabase
-                        .from("pets")
-                        .update({ photo_url: photoUrl })
-                        .eq("id", newPet.id);
-                }
-            }
+            if (updateError) throw updateError;
 
             await refreshPets();
             router.back();
@@ -131,6 +140,46 @@ export default function AddPetScreen() {
         }
         setLoading(false);
     }
+
+    async function handleDeletePet() {
+        Alert.alert(
+            "Delete Pet",
+            `Are you sure you want to delete ${name}? All events and reminders for this pet will also be deleted. This cannot be undone.`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            // Delete photo from storage
+                            if (existingPhotoUrl) {
+                                await deletePetPhoto(existingPhotoUrl);
+                            }
+                            // Delete pet (cascades to events and reminders)
+                            await supabase.from("pets").delete().eq("id", petId);
+                            await refreshPets();
+                            router.back();
+                        } catch (err: any) {
+                            setError(err.message);
+                        }
+                        setLoading(false);
+                    },
+                },
+            ]
+        );
+    }
+
+    if (fetching) {
+        return (
+            <SafeAreaView className={`flex-1 ${bgClass} items-center justify-center`}>
+                <ActivityIndicator size="large" color={isDark ? "#fff" : "#000"} />
+            </SafeAreaView>
+        );
+    }
+
+    const displayPhoto = photoUri || (removePhoto ? null : existingPhotoUrl);
 
     return (
         <SafeAreaView className={`flex-1 ${bgClass}`}>
@@ -143,28 +192,33 @@ export default function AddPetScreen() {
                         <TouchableOpacity onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={24} color={isDark ? "#f5f5f7" : "#000"} />
                         </TouchableOpacity>
-                        <Text className={`text-2xl font-bold ${textClass}`}>Add Pet</Text>
+                        <Text className={`text-2xl font-bold ${textClass}`}>Edit Pet</Text>
                     </View>
 
                     {/* Pet Photo Picker */}
-                    <TouchableOpacity className="items-center mb-8" onPress={pickPhoto}>
-                        {photoUri ? (
-                            <View className="w-24 h-24 rounded-full overflow-hidden">
-                                <Image
-                                    source={{ uri: photoUri }}
-                                    style={{ width: 96, height: 96 }}
-                                    resizeMode="none"
-                                />
-                            </View>
-                        ) : (
-                            <View className={`w-24 h-24 rounded-full items-center justify-center ${isDark ? "bg-dark-card" : "bg-gray-100"}`}>
-                                <Ionicons name="camera-outline" size={32} color="#9ca3af" />
-                            </View>
+                    <View className="items-center mb-4">
+                        <TouchableOpacity onPress={pickPhoto}>
+                            {displayPhoto ? (
+                                <View className="w-24 h-24 rounded-full overflow-hidden">
+                                    <Image
+                                        source={{ uri: displayPhoto }}
+                                        style={{ width: 96, height: 96 }}
+                                        resizeMode="none"
+                                    />
+                                </View>
+                            ) : (
+                                <View className={`w-24 h-24 rounded-full items-center justify-center ${isDark ? "bg-dark-card" : "bg-gray-100"}`}>
+                                    <Ionicons name="camera-outline" size={32} color="#9ca3af" />
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        <Text className={`text-sm ${textSecondaryClass} mt-2`}>Tap photo to change</Text>
+                        {displayPhoto && (
+                            <TouchableOpacity onPress={handleRemovePhoto} className="mt-2">
+                                <Text className="text-sm text-red-500">Remove Photo</Text>
+                            </TouchableOpacity>
                         )}
-                        <Text className={`text-sm ${textSecondaryClass} mt-2`}>
-                            {photoUri ? "Tap to change photo" : "Add photo"}
-                        </Text>
-                    </TouchableOpacity>
+                    </View>
 
                     {/* Name */}
                     <Text className={`text-sm font-medium ${isDark ? "text-dark-text-secondary" : "text-gray-700"} mb-2`}>Pet Name *</Text>
@@ -240,6 +294,15 @@ export default function AddPetScreen() {
                         <Text className="text-red-500 text-sm text-center mb-4">{error}</Text>
                     ) : null}
 
+                    {/* Delete Pet */}
+                    <TouchableOpacity
+                        className="flex-row items-center justify-center gap-2 mt-4"
+                        onPress={handleDeletePet}
+                    >
+                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                        <Text className="text-red-500 text-sm font-medium">Delete this pet</Text>
+                    </TouchableOpacity>
+
                 </View>
             </ScrollView>
 
@@ -253,7 +316,7 @@ export default function AddPetScreen() {
                     {loading ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text className="text-white font-semibold text-base">Save Pet</Text>
+                        <Text className="text-white font-semibold text-base">Save Changes</Text>
                     )}
                 </TouchableOpacity>
             </View>

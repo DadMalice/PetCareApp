@@ -12,7 +12,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../context/ThemeContext";
-import type { PetEvent, Pet } from "../../types/index";
+import { usePet } from "../../context/PetContext";
+import type { PetEvent } from "../../types/index";
 
 const CATEGORY_COLORS: Record<string, string> = {
     food: "#dcfce7",
@@ -41,29 +42,18 @@ function formatDate(timestamp: string) {
 
 export default function ExpensesScreen() {
     const { isDark } = useTheme();
-    const [pets, setPets] = useState<Pet[]>([]);
-    const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+    const { pets, selectedPet, setSelectedPet } = usePet();
     const [expenses, setExpenses] = useState<PetEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    async function fetchData(pet?: Pet | null, month?: Date) {
+    async function fetchData(month?: Date) {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: petsData } = await supabase
-                .from("pets")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: true });
-
-            if (petsData && petsData.length > 0) {
-                setPets(petsData);
-                const activePet = pet ?? petsData[0];
-                setSelectedPet(activePet);
-
+            if (selectedPet) {
                 const activeMonth = month ?? currentMonth;
                 const startOfMonth = new Date(activeMonth.getFullYear(), activeMonth.getMonth(), 1);
                 const endOfMonth = new Date(activeMonth.getFullYear(), activeMonth.getMonth() + 1, 0);
@@ -71,13 +61,15 @@ export default function ExpensesScreen() {
                 const { data: expensesData } = await supabase
                     .from("events")
                     .select("*")
-                    .eq("pet_id", activePet.id)
+                    .eq("pet_id", selectedPet.id)
                     .eq("type", "expense")
                     .gte("timestamp", startOfMonth.toISOString())
                     .lte("timestamp", endOfMonth.toISOString())
                     .order("timestamp", { ascending: false });
 
                 setExpenses(expensesData || []);
+            } else {
+                setExpenses([]);
             }
         } catch (err) {
             console.error(err);
@@ -90,11 +82,11 @@ export default function ExpensesScreen() {
     useFocusEffect(
         useCallback(() => {
             fetchData();
-        }, [])
+        }, [selectedPet])
     );
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        fetchData(selectedPet, currentMonth);
+        fetchData(currentMonth);
     }, [selectedPet, currentMonth]);
 
     function getTotalThisMonth() {
@@ -114,7 +106,7 @@ export default function ExpensesScreen() {
         const newMonth = new Date(currentMonth);
         newMonth.setMonth(newMonth.getMonth() + direction);
         setCurrentMonth(newMonth);
-        fetchData(selectedPet, newMonth);
+        fetchData(newMonth);
     }
 
     const total = getTotalThisMonth();
@@ -173,7 +165,10 @@ export default function ExpensesScreen() {
                                 {pets.map((pet) => (
                                     <TouchableOpacity
                                         key={pet.id}
-                                        onPress={() => fetchData(pet, currentMonth)}
+                                        onPress={() => {
+                                            setSelectedPet(pet);
+                                            fetchData(currentMonth);
+                                        }}
                                         className="px-4 py-2 rounded-full"
                                         style={{
                                             backgroundColor: selectedPet?.id === pet.id ? "#000" : (isDark ? "#1c1c1e" : "#f3f4f6"),

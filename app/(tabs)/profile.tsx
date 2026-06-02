@@ -5,24 +5,25 @@ import {
     ScrollView,
     ActivityIndicator,
     Switch,
+    Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../context/ThemeContext";
+import { usePet } from "../../context/PetContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import PetAvatar from "../components/PetAvatar";
-import type { Pet } from "../../types/index";
 
 export default function ProfileScreen() {
     const router = useRouter();
     const { isDark, toggleTheme } = useTheme();
-    const [pets, setPets] = useState<Pet[]>([]);
+    const { pets, selectedPet } = usePet();
     const [userName, setUserName] = useState("");
     const [userEmail, setUserEmail] = useState("");
+    const [userAvatar, setUserAvatar] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
     async function fetchData() {
         try {
@@ -31,17 +32,7 @@ export default function ProfileScreen() {
 
             setUserName(user.user_metadata?.full_name || "Pet Owner");
             setUserEmail(user.email || "");
-
-            const { data: petsData } = await supabase
-                .from("pets")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: true });
-
-            setPets(petsData || []);
-            if (petsData && petsData.length > 0) {
-                setSelectedPet(petsData[0]);
-            }
+            setUserAvatar(user.user_metadata?.avatar_url || user.user_metadata?.picture || null);
         } catch (err) {
             console.error(err);
         } finally {
@@ -83,9 +74,16 @@ export default function ProfileScreen() {
                     {/* User Info */}
                     <View className={`rounded-2xl p-4 mb-6 ${cardBgClass}`} style={{ borderWidth: 1, borderColor: isDark ? "#2c2c2e" : "#f3f4f6" }}>
                         <View className="flex-row items-center gap-4">
-                            <View className={`w-14 h-14 rounded-full items-center justify-center ${isDark ? "bg-dark-border" : "bg-gray-100"}`}>
-                                <Ionicons name="person-outline" size={24} color="#9ca3af" />
-                            </View>
+                            {userAvatar ? (
+                                <Image
+                                    source={{ uri: userAvatar }}
+                                    style={{ width: 56, height: 56, borderRadius: 28 }}
+                                />
+                            ) : (
+                                <View className={`w-14 h-14 rounded-full items-center justify-center ${isDark ? "bg-dark-border" : "bg-gray-100"}`}>
+                                    <Ionicons name="person-outline" size={24} color="#9ca3af" />
+                                </View>
+                            )}
                             <View className="flex-1">
                                 <Text className={`text-lg font-bold ${textClass}`}>{userName}</Text>
                                 <Text className={`text-sm ${textSecondaryClass}`}>{userEmail}</Text>

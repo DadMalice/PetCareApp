@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../context/ThemeContext";
+import { useGoogleAuth } from "../../lib/googleAuth";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 export default function LoginScreen() {
     const router = useRouter();
     const { isDark } = useTheme();
+    const { handleGoogleSignIn } = useGoogleAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -125,6 +127,7 @@ export default function LoginScreen() {
                     <TouchableOpacity
                         className="bg-white border border-[#DADCE0] rounded-xl py-4 items-center mb-8 flex-row justify-center gap-3"
                         activeOpacity={0.8}
+                        onPress={handleGoogleSignIn}
                     >
                         <Image
                             source={require("../../assets/g-logo.png")}

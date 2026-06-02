@@ -19,23 +19,15 @@ function RootLayoutInner() {
     const segments = useSegments();
     const { isDark } = useTheme();
 
-    // Handle incoming deep links (e.g., password reset redirect from Supabase)
+    // Handle incoming deep links (password reset + Google OAuth callback)
     async function handleDeepLink(url: string) {
         try {
-            if (!url.includes("reset-password") && !url.includes("type=recovery")) return;
-
-            setIsPasswordRecovery(true);
-
             const urlObj = new URL(url);
-
-            // PKCE flow: code in query params
-            const code = urlObj.searchParams.get("code");
-            if (code) {
-                const { error } = await supabase.auth.exchangeCodeForSession(code);
-                if (error) console.error("Error exchanging code:", error);
-            }
+            const isPasswordRecovery =
+                url.includes("reset-password") || url.includes("type=recovery");
 
             // Implicit flow: tokens in URL fragment (#access_token=...&refresh_token=...)
+            // Used by both password recovery and Google OAuth callback
             if (urlObj.hash && urlObj.hash.length > 1) {
                 const fragment = urlObj.hash.substring(1);
                 const params = new URLSearchParams(fragment);
@@ -48,10 +40,26 @@ function RootLayoutInner() {
                         refresh_token: refreshToken,
                     });
                     if (error) console.error("Error setting session:", error);
+
+                    if (isPasswordRecovery) {
+                        setIsPasswordRecovery(true);
+                        router.replace("/(auth)/reset-password");
+                    }
+                    // For OAuth callback, onAuthStateChange will handle navigation
+                    return;
                 }
             }
 
-            router.replace("/(auth)/reset-password");
+            // PKCE flow: code in query params (password recovery only)
+            if (isPasswordRecovery) {
+                const code = urlObj.searchParams.get("code");
+                if (code) {
+                    setIsPasswordRecovery(true);
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (error) console.error("Error exchanging code:", error);
+                    router.replace("/(auth)/reset-password");
+                }
+            }
         } catch (err) {
             console.error("Error handling deep link:", err);
         }
@@ -112,7 +120,7 @@ function RootLayoutInner() {
     return (
         <SafeAreaProvider>
             <StatusBar style={isDark ? "light" : "dark"} />
-            <View className={"flex-1 " + (isDark ? "dark bg-dark-bg" : "bg-white")}>
+            <View className={`flex-1 bg-white dark:bg-dark-bg${isDark ? " dark" : ""}`}>
                 <PetProvider>
                     <Slot />
                 </PetProvider>
